@@ -135,7 +135,10 @@ historic = [
      'variable': 'RNOF'}
 ]
 
-downloads = rcp4_5 + rcp8_5 + historic
+downloads = []
+downloads += historic
+# downloads += rcp4_5
+# downloads += rcp8_5
 
 
 def main():
@@ -144,8 +147,6 @@ def main():
 
     # print(get_projeta_data_async(**downloads[0], latitude=-13, longitude=-49))
     parse_projeta_data_from_downloads_list()
-
-    print('4')
 
 
 def parse_shapefile():
@@ -164,15 +165,15 @@ def parse_shapefile():
 
 
 def parse_projeta_data_from_downloads_list():
-    coordinates = session.query(models.Coordinate).all()[:1]
+    coordinates = session.query(models.Coordinate).all()
 
     for download in downloads:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with concurrent.futures.ThreadPoolExecutor(2000) as executor:
             results = executor.map(build_variables_table, coordinates, [download for _ in coordinates])
-
+            #results = executor.submit(build_variables_table, [coordinates, [download for _ in coordinates]])
             for projeta_data, coordinate in results:
+                # for j, (projeta_data, coordinate) in enumerate(concurrent.futures.as_completed(results)):
                 for data in projeta_data:
-                    print(data)
                     try:
                         date = parse_projeta_date(data['date'])
                     except ValueError:
@@ -245,6 +246,28 @@ def build_variables_table(coordinate: models.Coordinate, download):
         longitude=coordinate.longitude)
 
     return projeta_data, coordinate
+
+
+def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        length      - Optional  : character length of bar (Int)
+        fill        - Optional  : bar fill character (Str)
+        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
+    """
+    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
+    filledLength = int(length * iteration // total)
+    bar = fill * filledLength + '-' * (length - filledLength)
+    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end=printEnd)
+    # Print New Line on Complete
+    if iteration == total:
+        print()
 
 
 if __name__ == '__main__':
