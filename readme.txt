@@ -31,6 +31,3 @@ git add paper/introdução.tex
             git pull
         para fazer upload das versões que você está trabalhando:
             git push
-
-        caso a versão do servidor do git hub seja mais atual do que a versão que você está trabalhando, será
-        necessário fazer um git commit -m "Mensagem"
