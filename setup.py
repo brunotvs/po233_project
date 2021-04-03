@@ -8,7 +8,7 @@ from source.build_data.models import models, session
 
 import concurrent.futures
 
-# lista de identificadores de cenários como
+# lista de identificadores de cenários como apresentado no projeta
 # passar o número correspondente para a função
 # scenarios = {
 #     1: "20 km, RCP4.5, continental, MIROC5.",
