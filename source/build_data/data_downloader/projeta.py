@@ -1,8 +1,10 @@
-import typing
-from typing import Tuple
-import requests
 import concurrent.futures
 import datetime
+import time
+import typing
+from typing import Tuple
+
+import requests
 
 from sqlalchemy.sql.sqltypes import Integer
 
@@ -21,13 +23,28 @@ def get_frequency(frequency):
 
 
 def get_data(url):
-    print(url)
-    response = requests.get(url).json()
+
     # print(response.text)
 
     data = []
-    for v in response:
-        data.append({'value': v['value'], 'date': v['date'], 'time': v['time']})
+    status_code = 0
+    max_tries = 5
+    tries = max_tries
+    while status_code != 200 and tries > 0:
+        try:
+
+            response_obj = requests.get(url, timeout=30)
+            status_code = response_obj.status_code
+            # print(url, status_code, again)
+            response = response_obj.json()
+            for v in response:
+                data.append({'value': v['value'], 'date': v['date'], 'time': v['time']})
+
+        except BaseException as exception:
+            # print('get data error', url, status_code, exception, max_tries - tries)
+            pass
+        tries -= 1
+
     return data
 
 
@@ -46,6 +63,19 @@ def build_urls(scenario, frequency, variable, latitude, longitude, periods):
 
 def slice_period(start_month, start_year, end_month, end_year):
     periods = []
+    month_step = 12
+    for year in range(start_year, end_year + 1):
+        m1 = start_month if year == start_year else 1
+        m2 = end_month if year + 1 == end_year else 13
+        for month in range(m1, m2, month_step):
+            final_end_month = month + month_step - 1
+            periods.append((month, year, final_end_month, year))
+
+    return periods
+
+
+def slice_period2(start_month, start_year, end_month, end_year):
+    periods = []
     increment = 0
     if start_year == end_year:
         return [(start_month, start_year, end_month, end_year)]
@@ -56,11 +86,12 @@ def slice_period(start_month, start_year, end_month, end_year):
 
     periods.append(((start_month + increment) % 12, end_year - 1 + (start_month + 1) // 12, end_month, end_year))
 
-    return periods
+    return[(start_month, start_year, end_month, end_year)]
+    # return periods
 
 
 def get_data_async(urls):
-    with concurrent.futures.ThreadPoolExecutor() as executor:
+    with concurrent.futures.ThreadPoolExecutor(1) as executor:
         datasets = executor.map(get_data, urls)
 
         data = []

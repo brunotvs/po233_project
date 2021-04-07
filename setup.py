@@ -1,12 +1,18 @@
+import concurrent.futures
 import datetime
+import time
 
 import shapefile
 from requests import models
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.sql import functions
+from sqlalchemy.orm.exc import NoResultFound
 
 from source.build_data.data_downloader import projeta
-from source.build_data.models import models, session
+from source.build_data.models import engine, models, session, create_db, remove_db
 
-import concurrent.futures
+session_factory = sessionmaker(bind=engine)
+Session = scoped_session(session_factory)
 
 # lista de identificadores de cenários como apresentado no projeta
 # passar o número correspondente para a função
@@ -41,112 +47,60 @@ import concurrent.futures
 
 shapefile_path = 'data/shapefile/buffer_coord'
 
+rcp_common = {
+    'start_month': 1, 'star_year': 2006,
+    'end_month': 12, 'end_year': 2099,
+    'frequency': 2,
+}
+
+historic_common = {
+    'start_month': 1, 'star_year': 1999,
+    'end_month': 12, 'end_year': 2005,
+    'frequency': 2,
+}
 
 rcp4_5 = [
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 4,
-     'frequency': 2,
-     'variable': 'PREC'},
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 4,
-     'frequency': 2,
-     'variable': 'TP2M'},
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 4,
-     'frequency': 2,
-     'variable': 'EVAP'},
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 4,
-     'frequency': 2,
-     'variable': 'RNOF'}
+    {'scenario': 4, 'variable': 'PREC'},
+    # {'scenario': 4, 'variable': 'TP2M'},
+    # {'scenario': 4, 'variable': 'EVTP'},
+    # {'scenario': 4, 'variable': 'RNOF'}
 ]
+
+[rcp4_5_d.update(rcp_common) for rcp4_5_d in rcp4_5]
 
 rcp8_5 = [
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 6,
-     'frequency': 2,
-     'variable': 'PREC'},
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 6,
-     'frequency': 2,
-     'variable': 'TP2M'},
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 6,
-     'frequency': 2,
-     'variable': 'EVAP'},
-    {'start_month': 1,
-     'star_year': 2006,
-     'end_month': 12,
-     'end_year': 2100,
-     'scenario': 6,
-     'frequency': 2,
-     'variable': 'RNOF'}
+    {'scenario': 6, 'variable': 'PREC'},
+    {'scenario': 6, 'variable': 'TP2M'},
+    {'scenario': 6, 'variable': 'EVTP'},
+    {'scenario': 6, 'variable': 'RNOF'}
 ]
+
+[rcp8_5_d.update(rcp_common) for rcp8_5_d in rcp8_5]
 
 historic = [
-    {'start_month': 1,
-     'star_year': 1999,
-     'end_month': 12,
-     'end_year': 2005,
-     'scenario': 16,
-     'frequency': 2,
-     'variable': 'PREC'},
-    {'start_month': 1,
-     'star_year': 1999,
-     'end_month': 12,
-     'end_year': 2005,
-     'scenario': 16,
-     'frequency': 2,
-     'variable': 'TP2M'},
-    {'start_month': 1,
-     'star_year': 1999,
-     'end_month': 12,
-     'end_year': 2005,
-     'scenario': 16,
-     'frequency': 2,
-     'variable': 'EVAP'},
-    {'start_month': 1,
-     'star_year': 1999,
-     'end_month': 12,
-     'end_year': 2005,
-     'scenario': 16,
-     'frequency': 2,
-     'variable': 'RNOF'}
+    {'scenario': 16, 'variable': 'PREC'},  # done
+    # {'scenario': 16, 'variable': 'TP2M'},  # done
+    # {'scenario': 16, 'variable': 'EVTP'},  # done
+    # {'scenario': 16, 'variable': 'RNOF'}  # done
 ]
 
+[historic_d.update(historic_common) for historic_d in historic]
+
 downloads = []
-downloads += historic
 # downloads += rcp4_5
 # downloads += rcp8_5
+downloads += historic
 
 
 def main():
+    remove_db()
+    create_db()
 
     parse_shapefile()
-
     # print(get_projeta_data_async(**downloads[0], latitude=-13, longitude=-49))
     parse_projeta_data_from_downloads_list()
+
+    Session.remove()
 
 
 def parse_shapefile():
@@ -165,14 +119,30 @@ def parse_shapefile():
 
 
 def parse_projeta_data_from_downloads_list():
-    coordinates = session.query(models.Coordinate).all()
+    coordinates = session.query(models.Coordinate).all()[:1]
 
+    variables = {
+        'PREC': 'precipitation',
+        'TP2M': 'temperature',
+        'EVTP': 'evaporation',
+        'RNOF': 'surface_runoff',
+    }
     for download in downloads:
-        with concurrent.futures.ThreadPoolExecutor(2000) as executor:
+        with concurrent.futures.ThreadPoolExecutor(50) as executor:
             results = executor.map(build_variables_table, coordinates, [download for _ in coordinates])
-            #results = executor.submit(build_variables_table, [coordinates, [download for _ in coordinates]])
-            for projeta_data, coordinate in results:
-                # for j, (projeta_data, coordinate) in enumerate(concurrent.futures.as_completed(results)):
+            coordinates_count = session.query(functions.count(models.Coordinate.id)).scalar()
+            print(coordinates_count)
+            print_progress_bar(0, coordinates_count, f"{download['scenario']} - {download['variable']}")
+
+            for i, (projeta_data, coordinate) in enumerate(results):
+                th_session = Session()
+                th_coordinate = th_session.query(models.Coordinate).get(coordinate.id)
+                print_progress_bar(
+                    i + 1,
+                    coordinates_count,
+                    f"{download['scenario']} - {download['variable']}",
+                    f'{i+1} {coordinate.latitude} {coordinate.longitude}')
+
                 for data in projeta_data:
                     try:
                         date = parse_projeta_date(data['date'])
@@ -183,15 +153,28 @@ def parse_projeta_data_from_downloads_list():
                         time = parse_projeta_time(data['time'])
                     except ValueError:
                         continue
-                    coordinate.variables.append(
-                        models.Variables(
-                            value=data['value'],
+
+                    try:
+                        var = th_session.query(models.Variables)\
+                            .filter(models.Variables.coordinate == coordinate)\
+                            .filter(models.Variables.date == date)\
+                            .filter(models.Variables.time == time)\
+                            .filter(models.Variables.scenario == download['scenario'])\
+                            .one()
+                        print('var found')
+                    except NoResultFound:
+                        var = models.Variables(
                             date=date,
                             time=time,
                             scenario=download['scenario'],
-                            variable=download['variable']))
+                            coordinate=th_coordinate)
+                        print('var not found')
 
-    session.commit()
+                    setattr(var, variables[download['variable']], data['value'])
+
+                    th_session.add(var)
+
+                th_session.commit()
 
     # with concurrent.futures.ThreadPoolExecutor() as executor:
     #     projeta_data = [executor.submit(
@@ -231,7 +214,10 @@ def get_projeta_data_async(
 
 
 def parse_projeta_date(date: str) -> datetime.date:
-    day, month, year = date.split('/')
+    if '/' in date:
+        day, month, year = date.split('/')
+    else:
+        year, month, day = date.split('-')
     return datetime.date(int(year), int(month), int(day))
 
 
@@ -248,7 +234,15 @@ def build_variables_table(coordinate: models.Coordinate, download):
     return projeta_data, coordinate
 
 
-def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, length=100, fill='█', printEnd="\r"):
+def print_progress_bar(
+        iteration,
+        total,
+        prefix='',
+        suffix='',
+        decimals=1,
+        length=100,
+        fill='█',
+        printEnd="\r"):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -271,4 +265,6 @@ def print_progress_bar(iteration, total, prefix='', suffix='', decimals=1, lengt
 
 
 if __name__ == '__main__':
+    start = time.perf_counter()
     main()
+    print('\n', time.perf_counter() - start)

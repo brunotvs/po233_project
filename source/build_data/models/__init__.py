@@ -9,15 +9,18 @@ Base = declarative_base()
 Session = sessionmaker(bind=engine)
 session = Session()
 
-try:
-    os.remove("data.db")
-except BaseException:
-    pass
-
 
 def create_db():
     from .models import Coordinate, Variables, River
     Base.metadata.create_all(engine)
+
+
+def remove_db():
+    try:
+        os.remove("data.db")
+
+    except BaseException:
+        pass
 
 
 create_db()

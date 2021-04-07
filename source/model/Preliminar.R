@@ -5,7 +5,7 @@ library(PerformanceAnalytics)
 
 rm(list = ls())
 
-setwd("C:/Users/walla/OneDrive/¡rea de Trabalho/Machine")
+setwd("C:/Users/walla/OneDrive/√Årea de Trabalho/Machine")
 df <- read.delim("dataset_merge.txt", sep=",")
 
 df[,c(2:3,8:11)] <- NULL
@@ -19,21 +19,21 @@ values <- df %>%
   summarise(count=n())
 values$Perc <- values$count/sum(values$count)*100
 
-#Dispers„o da mÈdia no Rio 1
+#Dispers√£o da m√©dia no Rio 1
 df2 <- subset(df, Data >= as.Date("1999-01-01") & Data <= as.Date("1999-01-10") & river==c("1"))
 
 ggplot(df2, aes(x = Data, y = PREC, color = Data, group = Data)) +
   geom_boxplot(position = position_dodge(width = 0.2)) +
   geom_point(position = position_jitterdodge(seed = 123))
 
-#Dispers„o da mÈdia entre Rios
+#Dispers√£o da m√©dia entre Rios
 df2 <- subset(df, Data >= as.Date("1999-01-01") & Data <= as.Date("1999-01-01"))
 
 ggplot(df2, aes(x = river, y = PREC, color = river, group = river)) +
   geom_boxplot(position = position_dodge(width = 0.2)) +
   geom_point(position = position_jitterdodge(seed = 123))
 
-#Caso us·ssemos a soma das precipitaÁıes
+#Caso us√°ssemos a soma das precipita√ß√µes
 teste <- df2  %>%
   group_by(Data,river) %>%
   summarize_all((sum))
@@ -41,7 +41,7 @@ teste <- df2  %>%
 ggplot(teste, aes(x=river, y=PREC, fill=PREC)) +
   geom_bar(stat="identity")+theme_minimal()
 
-#Caso us·ssemos a mÈdia das precipitaÁıes
+#Caso us√°ssemos a m√©dia das precipita√ß√µes
 teste <- df2  %>%
   group_by(Data,river) %>%
   summarize_all((mean))
@@ -49,7 +49,7 @@ teste <- df2  %>%
 ggplot(teste, aes(x=river, y=PREC, fill=PREC)) +
   geom_bar(stat="identity")+theme_minimal()
 
-#Usando mÈdia para tudo
+#Usando m√©dia para tudo
 # teste2 <- subset(df, Data >= as.Date("1999-01-01") & Data <= as.Date("1999-01-02"))
 # teste2 <- subset(df, Data >= as.Date("1999-01-01") & Data <= as.Date("1999-01-01") & river==c("1"))
 
@@ -62,7 +62,7 @@ teste <- df %>%
 teste <- teste %>%
   slice(1)
 
-#DistribuiÁ„o das precipitaÁıes em 30 dias
+#Distribui√ß√£o das precipita√ß√µes em 30 dias
 df2 <- subset(teste, Data >= as.Date("1999-03-01") & Data <= as.Date("1999-03-30"))
 
 ggplot(df2, aes(x = river, y = PREC-evap, color = river, group = river)) +
@@ -80,8 +80,8 @@ nivel$Data <- as.Date(nivel$Data, format="%m/%d/%Y")
 vazao <- read.delim("Vazao.txt", sep=",")
 vazao$Data <- as.Date(vazao$Data, format="%Y-%m-%d")
 
-nivel$Reservat√≥rio <- NULL
-vazao$Reservat√≥rio <- NULL
+nivel$Reservat√É¬≥rio <- NULL
+vazao$Reservat√É¬≥rio <- NULL
 
 teste2 <- merge(teste,nivel, by=c("Data"))
 teste2 <- merge(teste2,vazao, by=c("Data"))

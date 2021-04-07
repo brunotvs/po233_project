@@ -4,7 +4,9 @@ from sqlalchemy.ext.associationproxy import association_proxy
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import Index, UniqueConstraint
 from sqlalchemy.sql import func
+from sqlalchemy.sql.elements import True_
 from sqlalchemy.sql.expression import false, null, true
+from sqlalchemy.sql.sqltypes import SmallInteger
 
 from . import Base, session
 
@@ -44,20 +46,20 @@ class River(Base):
 class Variables(Base):
     __tablename__ = 'variables'
 
-    id = Column(Integer, primary_key=True, unique=True, autoincrement=True)
-    date = Column(Date)
-    time = Column(Time)
-    value = Column(Float)
-    variable = Column(String, nullable=False)
-    scenario = Column(String, nullable=False)
+    # id = Column(Integer, primary_key=True, unique=True, autoincrement=True)
+    date = Column(Date, primary_key=True)
+    time = Column(Time, primary_key=True)
+    precipitation = Column(Float)
+    temperature = Column(Float)
+    evaporation = Column(Float)
+    surface_runoff = Column(Float)
+    scenario = Column(String(2), nullable=False, primary_key=True)
 
-    coordinate_id = Column(String, ForeignKey('coordinates.id'), nullable=False)
+    coordinate_id = Column(Integer, ForeignKey('coordinates.id'), nullable=False, primary_key=True)
     coordinate = relationship('Coordinate', back_populates='variables', uselist=False)
 
-    def __init__(self, value, date, time, variable: str, scenario: str) -> None:
-        self.value = value
+    def __init__(self, coordinate: Coordinate, date, time, scenario: str) -> None:
         self.date = date
         self.time = time
-        self.variable = variable
         self.scenario = scenario
-        session.add(self)
+        self.coordinate = coordinate
