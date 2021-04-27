@@ -79,25 +79,24 @@ rcp8_5 = [
 
 historic = [
     {'scenario': 16, 'variable': 'PREC'},  # done
-    # {'scenario': 16, 'variable': 'TP2M'},  # done
-    # {'scenario': 16, 'variable': 'EVTP'},  # done
-    # {'scenario': 16, 'variable': 'RNOF'}  # done
+    {'scenario': 16, 'variable': 'TP2M'},  # done
+    {'scenario': 16, 'variable': 'EVTP'},  # done
+    {'scenario': 16, 'variable': 'RNOF'}  # done
 ]
 
 [historic_d.update(historic_common) for historic_d in historic]
 
 downloads = []
-# downloads += rcp4_5
+downloads += rcp4_5
 # downloads += rcp8_5
-downloads += historic
+# downloads += historic
 
 
 def main():
-    remove_db()
-    create_db()
+    # remove_db()
+    # create_db()
 
-    parse_shapefile()
-    # print(get_projeta_data_async(**downloads[0], latitude=-13, longitude=-49))
+    # # parse_shapefile()
     parse_projeta_data_from_downloads_list()
 
     Session.remove()
@@ -119,7 +118,7 @@ def parse_shapefile():
 
 
 def parse_projeta_data_from_downloads_list():
-    coordinates = session.query(models.Coordinate).all()[:1]
+    coordinates = session.query(models.Coordinate).all()
 
     variables = {
         'PREC': 'precipitation',
@@ -128,7 +127,7 @@ def parse_projeta_data_from_downloads_list():
         'RNOF': 'surface_runoff',
     }
     for download in downloads:
-        with concurrent.futures.ThreadPoolExecutor(50) as executor:
+        with concurrent.futures.ThreadPoolExecutor(5) as executor:
             results = executor.map(build_variables_table, coordinates, [download for _ in coordinates])
             coordinates_count = session.query(functions.count(models.Coordinate.id)).scalar()
             print(coordinates_count)
@@ -154,6 +153,7 @@ def parse_projeta_data_from_downloads_list():
                     except ValueError:
                         continue
 
+                    data['value'] = None if data['value'] < -100 else data['value']
                     try:
                         var = th_session.query(models.Variables)\
                             .filter(models.Variables.coordinate == coordinate)\
@@ -161,14 +161,12 @@ def parse_projeta_data_from_downloads_list():
                             .filter(models.Variables.time == time)\
                             .filter(models.Variables.scenario == download['scenario'])\
                             .one()
-                        print('var found')
                     except NoResultFound:
                         var = models.Variables(
                             date=date,
                             time=time,
                             scenario=download['scenario'],
                             coordinate=th_coordinate)
-                        print('var not found')
 
                     setattr(var, variables[download['variable']], data['value'])
 
@@ -201,7 +199,7 @@ def get_projeta_data_async(
         start_month=start_month,
         start_year=star_year,
         end_month=end_month,
-        end_year=end_year)
+        end_year=end_year, year_step=5)
 
     urls = projeta.build_urls(
         scenario=scenario,

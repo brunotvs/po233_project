@@ -1,0 +1,48 @@
+\[
+  \setlength{\arraycolsep}{0pt}% No column separation in array; manual spacing
+                               % by supplying empty groups {} around operators
+  \renewcommand{\arraystretch}{1.5}% Stretch out content vertically
+  \resizebox{.8\textwidth}{!}{
+  $
+  \begin{array}{ *{8}{c} }
+    % Header row in \scriptstyle
+    \scriptstyle Attribute-value \: database % +
+     \\
+    % Matrix/vector row
+    \begin{blockarray}{ccccccccccccccccc}
+    & P_1 & \cdots & P_c & E_1 & \cdots & E_c  &
+    T_1 & \cdots & T_c & T_1 & \cdots & T_c & WL & SF
+    \\
+    \begin{block}{c[cccccccccccccccc]}
+    Day_1 & a_{1,1}&\cdots&a_{1,11}&
+    a_{1,12} & \cdots &a_{1,22} &
+    a_{1,23} & \cdots &a_{1,33} &
+    a_{1,34} & \cdots &a_{1,44} &
+    a_{1,45} & a_{1,46}
+    \bigstrut[t] \\
+
+    Day_2 & a_{2,1} &\cdots&a_{2,11}&
+    a_{2,12} & \cdots &a_{2,22} &
+    a_{2,23} & \cdots &a_{2,33} &
+    a_{2,34} & \cdots &a_{2,44} &
+    a_{2,45} & a_{2,46}
+    \\
+
+    \vdots & \vdots & \cdots & \vdots & \vdots &
+    \cdots & \vdots & \vdots &
+    \cdots & \vdots & \vdots &
+    \cdots & \vdots & \vdots & \vdots
+    \\
+
+    Day_n & a_{n,1}&a_{n,3}&a_{n,4}&
+    a_{n,12} & \cdots & a_{n,22} &
+    a_{n,23} & \cdots &a_{n,33} &
+    a_{n,34} & \cdots &a_{n,44} &
+    a_{n,45} & a_{n,46}
+    \\
+    \end{block}
+    \end{blockarray}%\vspace*{-1.25\baselineskip}
+  \end{array}
+  $
+  }
+\]

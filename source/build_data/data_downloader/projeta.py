@@ -33,7 +33,7 @@ def get_data(url):
     while status_code != 200 and tries > 0:
         try:
 
-            response_obj = requests.get(url, timeout=30)
+            response_obj = requests.get(url, timeout=100)
             status_code = response_obj.status_code
             # print(url, status_code, again)
             response = response_obj.json()
@@ -61,15 +61,14 @@ def build_urls(scenario, frequency, variable, latitude, longitude, periods):
     return urls
 
 
-def slice_period(start_month, start_year, end_month, end_year):
+def slice_period(start_month, start_year, end_month, end_year, month_step=12, year_step=20):
     periods = []
-    month_step = 12
-    for year in range(start_year, end_year + 1):
+    for year in range(start_year, end_year + 1, year_step + 1):
         m1 = start_month if year == start_year else 1
         m2 = end_month if year + 1 == end_year else 13
         for month in range(m1, m2, month_step):
             final_end_month = month + month_step - 1
-            periods.append((month, year, final_end_month, year))
+            periods.append((month, year, final_end_month, min(year + year_step, end_year)))
 
     return periods
 
@@ -91,7 +90,7 @@ def slice_period2(start_month, start_year, end_month, end_year):
 
 
 def get_data_async(urls):
-    with concurrent.futures.ThreadPoolExecutor(1) as executor:
+    with concurrent.futures.ThreadPoolExecutor(5) as executor:
         datasets = executor.map(get_data, urls)
 
         data = []
