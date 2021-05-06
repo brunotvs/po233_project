@@ -39,3 +39,6 @@ Softwares para baixar:
         Inkscape [https://inkscape.org/pt-br/] - necessário para utilizar svg no documento (precisa adicionar à variável path do sistema)
         git-scm [https://git-scm.com/] - utilizar o git
         R e python, para códigos
+
+
+Teste Paula 
