@@ -31,3 +31,11 @@ git add paper/introdução.tex
             git pull
         para fazer upload das versões que você está trabalhando:
             git push
+Softwares para baixar:
+    Recomendados: 
+        Visual studio code [https://code.visualstudio.com/] - alternativa seria qualquer editor, como vim, sublime etc.
+        Tex Live [https://www.tug.org/texlive/] - alternativa seria mik tex, mas nunca usei e não sei se funciona bem
+    "Obrigatórios":
+        Inkscape [https://inkscape.org/pt-br/] - necessário para utilizar svg no documento (precisa adicionar à variável path do sistema)
+        git-scm [https://git-scm.com/] - utilizar o git
+        R e python, para códigos
