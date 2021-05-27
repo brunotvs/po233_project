@@ -1,3 +1,73 @@
 {
-    "python.pythonPath": ".env\\Scripts\\python.exe"
+    "python.pythonPath": ".env\\Scripts\\python.exe",
+    "latex-workshop.latex.tools": [
+        {
+            "args": [
+                "--shell-escape",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-pdf",
+                "-outdir=%OUTDIR%",
+                "%DOC%"
+            ],
+            "command": "latexmk",
+            "env": {
+                "TEXMFHOME": "%DIR%/texmf",
+            },
+            "name": "latexmk"
+        },
+        {
+            "args": [
+                "--shell-escape",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-lualatex",
+                "-outdir=%OUTDIR%",
+                "%DOC%"
+            ],
+            "command": "latexmk",
+            "env": {
+                "TEXMFHOME": "%DIR%/texmf"
+            },
+            "name": "lualatexmk"
+        },
+        {
+            "args": [
+                "--shell-escape",
+                "%DOC%"
+            ],
+            "command": "latexmk",
+            "env": {
+                "TEXMFHOME": "%DIR%/texmf"
+            },
+            "name": "latexmk_rconly"
+        },
+        {
+            "args": [
+                "--shell-escape",
+                "-synctex=1",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "%DOC%"
+            ],
+            "command": "pdflatex",
+            "env": {
+                "TEXMFHOME": "%DIR%/texmf"
+            },
+            "name": "pdflatex"
+        },
+        {
+            "args": [
+                "--shell-escape",
+                "%DOCFILE%"
+            ],
+            "command": "bibtex",
+            "env": {
+                "TEXMFHOME": "%DIR%/texmf"
+            },
+            "name": "bibtex"
+        }
+    ],
 }
