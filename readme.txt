@@ -40,4 +40,3 @@ Softwares para baixar:
         git-scm [https://git-scm.com/] - utilizar o git
         R e python, para códigos
 
-    Teste
