@@ -41,6 +41,3 @@ Softwares para baixar:
         R e python, para códigos
 
 <<<<<<< HEAD
-=======
-    Teste
->>>>>>> 3ec39d3abe9d085fb7e1a9d113beafd16027bad8
