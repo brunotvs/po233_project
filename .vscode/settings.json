@@ -1,5 +1,4 @@
 {
-    "python.pythonPath": ".env\\Scripts\\python.exe",
     "latex-workshop.latex.tools": [
         {
             "args": [
@@ -70,4 +69,5 @@
             "name": "bibtex"
         }
     ],
+    "python.pythonPath": ".env\\Scripts\\python.exe",
 }
