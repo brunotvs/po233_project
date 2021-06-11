@@ -8,8 +8,8 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 from sqlalchemy.sql import functions
 from sqlalchemy.orm.exc import NoResultFound
 
-from source.build_data.data_downloader import projeta
-from source.build_data.models import engine, models, session, create_db, remove_db
+from data_downloader import projeta
+from models import engine, models, session, create_db, remove_db
 
 session_factory = sessionmaker(bind=engine)
 Session = scoped_session(session_factory)
@@ -61,9 +61,9 @@ historic_common = {
 
 rcp4_5 = [
     {'scenario': 4, 'variable': 'PREC'},
-    # {'scenario': 4, 'variable': 'TP2M'},
-    # {'scenario': 4, 'variable': 'EVTP'},
-    # {'scenario': 4, 'variable': 'RNOF'}
+    {'scenario': 4, 'variable': 'TP2M'},
+    {'scenario': 4, 'variable': 'EVTP'},
+    {'scenario': 4, 'variable': 'RNOF'}
 ]
 
 [rcp4_5_d.update(rcp_common) for rcp4_5_d in rcp4_5]
@@ -87,9 +87,9 @@ historic = [
 [historic_d.update(historic_common) for historic_d in historic]
 
 downloads = []
-downloads += rcp4_5
+# downloads += rcp4_5
 # downloads += rcp8_5
-# downloads += historic
+downloads += historic
 
 
 def main():
@@ -97,7 +97,7 @@ def main():
     # create_db()
 
     # # parse_shapefile()
-    parse_projeta_data_from_downloads_list()
+    # parse_projeta_data_from_downloads_list()
 
     Session.remove()
 

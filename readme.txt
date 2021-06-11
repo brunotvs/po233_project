@@ -9,7 +9,21 @@ source
 build_data - pacote python para baixar os dados do projeta e construir um banco estruturado - ainda não funciona
 model - modelo de machine learning
 
-como ainda não estamos usando um ambiente python, acredito que podem ignorar os arquivos setup.py e requirements.txt
+Passo a passo para configurar o ambiente, após clonar do github:
+
+Em um terminal:
+
+    python -m venv .env
+
+    se usando git bash:
+        source .env/Scripts/activate.bat
+
+    se usando windows cmd:
+        .env\Scripts\activate
+
+    python -m pip install -r requirements.txt
+
+    Setup.bat
 
 Tuto de git:
 Após fazer as edições e salvar os arquivos que está trabalhando:

@@ -8,7 +8,7 @@ from sqlalchemy.sql.elements import True_
 from sqlalchemy.sql.expression import false, null, true
 from sqlalchemy.sql.sqltypes import SmallInteger
 
-from . import Base, session
+from . import Base
 
 
 class Coordinate(Base):
@@ -28,7 +28,6 @@ class Coordinate(Base):
     def __init__(self, latitude: float, longitude: float) -> None:
         self.latitude = round(latitude, 5)
         self.longitude = round(longitude, 5)
-        session.add(self)
 
 
 class River(Base):
@@ -36,11 +35,11 @@ class River(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, unique=True)
+    weight = Column(Float, nullable=False, unique=False)
     coordinates = relationship('Coordinate', back_populates='river')
 
     def __init__(self, name: str) -> None:
         self.name = name
-        session.add(self)
 
 
 class Variables(Base):
@@ -63,3 +62,15 @@ class Variables(Base):
         self.time = time
         self.scenario = scenario
         self.coordinate = coordinate
+
+
+class Reservoir(Base):
+    __tablename__ = 'reservoir'
+    date = Column(Date, primary_key=True)
+    level = Column(Float)
+    streamflow = Column(Float)
+
+    def __init__(self, date, level: Float, streamflow: Float) -> None:
+        self.date = date
+        self.level = level
+        self.streamflow = streamflow
