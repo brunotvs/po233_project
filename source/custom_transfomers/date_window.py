@@ -40,6 +40,9 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
         return new_X.dropna() if self.dropna else new_X
 
 
+
+
+
 class TemplateTransformer(TransformerMixin, BaseEstimator):
     """ An example transformer that returns the element-wise square root.
     For more information regarding how to build your own transformer, read more
