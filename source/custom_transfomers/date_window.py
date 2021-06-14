@@ -21,7 +21,7 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
         if hasattr(self, 'is_fitted_'):
             del self.is_fitted_
 
-        X = check_array(X, accept_sparse=True, force_all_finite='allow-nan')
+        X = check_array(X, accept_sparse=True, force_all_finite='allow-nan', ensure_2d=False)
 
         self.is_fitted_ = True
 
@@ -30,7 +30,6 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
     def transform(self, X: DataFrame) -> DataFrame:
         check_is_fitted(self, 'is_fitted_')
 
-        X = X.copy()
         new_X = X.copy()
         X = X[self.columns].rolling(self.rolling).agg(self.aggregate)
 
@@ -38,9 +37,6 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
             new_X[col] = X[col]
 
         return new_X.dropna() if self.dropna else new_X
-
-
-
 
 
 class TemplateTransformer(TransformerMixin, BaseEstimator):
