@@ -1,8 +1,6 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
-from IPython import get_ipython
-
 # %%
 import pandas
 from IPython import get_ipython
@@ -15,7 +13,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
                              precision_score, recall_score)
-from sklearn.model_selection import GridSearchCV, KFold, train_test_split
+from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
+                                     train_test_split)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.svm import SVR
@@ -26,7 +25,6 @@ from custom_transfomers.date_window import TimeWindowTransformer
 from data_base.connection import session
 from data_base.models import models
 from project_utils.data_manipulation import generate_aggregation
-
 
 # %%
 # Construção do dataframe utilizando buscas no banco de dados sql
