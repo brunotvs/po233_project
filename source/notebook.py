@@ -1,9 +1,12 @@
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 # %%
+from IPython import get_ipython
+
 # %%
 import pandas
 from IPython import get_ipython
+from sklearn import tree
 from sklearn.compose import TransformedTargetRegressor
 from sklearn.decomposition import PCA
 from sklearn.dummy import DummyRegressor
@@ -21,10 +24,11 @@ from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
 
-from custom_transfomers.date_window import TimeWindowTransformer
+from custom_transfomers.date_window import TimeWindowTransformer, Debug
 from data_base.connection import session
 from data_base.models import models
 from project_utils.data_manipulation import generate_aggregation
+
 
 # %%
 # Construção do dataframe utilizando buscas no banco de dados sql
@@ -53,7 +57,7 @@ RawDataFrame = pandas.read_sql(query, session.bind)
 # DataFrame consolidado porém com os atributos para cada rio posicionados em uma diferente coluna
 ConsolidatedDataFrame = (
     RawDataFrame.
-    groupby(['date', 'river', 'level', 'streamflow']).
+    groupby(['date', 'level', 'river', 'streamflow']).
     agg({
         'precipitation': 'sum',
         'evaporation': 'sum',
@@ -90,60 +94,75 @@ agg.update(evaporation_agg)
 agg.update(temperature_agg)
 agg.update(runoff_agg)
 
-
 # %%
+cv = KFold(n_splits=10, random_state=seed, shuffle=True)
+
+windowing_params = {
+    'windowing__aggregate': [agg],
+    'windowing__rolling': range(1, 32, 10),
+    'windowing__dropna': [False],
+}
+
 grid_search_params = dict(
-    estimator=Pipeline([
-        ('windowing', TimeWindowTransformer(columns=cols)),
-        ('imputer', SimpleImputer(strategy='mean')),
-        ('scaler', MinMaxScaler(feature_range=(0, 1))),
-        ('clf', DummyRegressor())
-    ]),
+    estimator=Pipeline(
+        [
+            ('windowing', TimeWindowTransformer(columns=cols)),
+            ('imputer', SimpleImputer(strategy='mean')),
+            ('scaler', MinMaxScaler(feature_range=(0, 1))),
+            ('clf', DummyRegressor())
+        ]
+    ),
     param_grid=[
         {
-            'windowing__aggregate': [agg],
-            'windowing__rolling': range(1, 32, 10),
-            'windowing__dropna': [False],
-            'clf': (
-                TransformedTargetRegressor(
-                    transformer=MinMaxScaler(feature_range=(0, 1)),
-                    regressor=SVR(cache_size=1000)
-                ),),
+            **windowing_params,
+            'clf': [TransformedTargetRegressor(
+                regressor=SVR(cache_size=1000)
+            )],
+            'clf__transformer': [MinMaxScaler(feature_range=(0, 1))],
             'clf__regressor__C': range(1, 15, 3),
             'clf__regressor__gamma': ['auto', 'scale'],
             'clf__regressor__kernel': ['rbf']
         },
         {
-            'windowing__aggregate': [agg],
-            'windowing__rolling': range(1, 32, 10),
-            'windowing__dropna': [False],
-            'clf': (RandomForestRegressor(), ),
-            'clf__random_state': [seed],
-            'clf__n_estimators': [200]
+            **windowing_params,
+            'scaler': [MinMaxScaler(), None],
+            'clf': [TransformedTargetRegressor(
+                regressor=RandomForestRegressor()
+            )],
+            'clf__transformer': [MinMaxScaler(feature_range=(0, 1)), None],
+            'clf__regressor__random_state': [seed],
+            'clf__regressor__n_estimators': [200],
         },
         {
-            'windowing__aggregate': [agg],
-            'windowing__rolling': range(1, 32, 10),
-            'windowing__dropna': [False],
+            **windowing_params,
             'clf': (DecisionTreeRegressor(), ),
             'clf__random_state': [seed]
         },
         {
-            'windowing__aggregate': [agg],
-            'windowing__rolling': range(1, 32, 10),
-            'windowing__dropna': [False],
+            **windowing_params,
             'clf': (StackingRegressor(
-                estimators=[('RandomForest', RandomForestRegressor()), ('SVR', SVR())],
-                final_estimator=Ridge()
+                estimators=[
+                    ('RandomForest', RandomForestRegressor()),
+                    ('SVR', TransformedTargetRegressor(
+                        transformer=MinMaxScaler(feature_range=(0, 1)),
+                        regressor=SVR()
+                    ))
+                ],
+                final_estimator=TransformedTargetRegressor(
+                    transformer=MinMaxScaler(feature_range=(0, 1)),
+                    regressor=SVR()
+                )
             ),),
             'clf__RandomForest__random_state': [seed],
             'clf__RandomForest__n_estimators': [200],
+            'clf__SVR__regressor__C': range(1, 16, 5),
+            'clf__final_estimator__regressor__C': range(1, 16, 5)
         }
     ],
-    scoring='neg_root_mean_squared_error',
-    cv=10,
+    scoring='r2',
+    cv=cv,
     n_jobs=-1,
-    verbose=10,
+    verbose=1,
     error_score='raise'
 )
 
@@ -153,45 +172,30 @@ targets = ['level', 'streamflow']
 
 clf_search = {target: GridSearchCV(**grid_search_params) for target in targets}
 
-
-# %%
-streamflow_X_train, streamflow_X_test, streamflow_y_train, streamflow_y_test = train_test_split(
-    ConsolidatedDataFrame,
-    ConsolidatedDataFrame.index.get_level_values('streamflow'), random_state=seed
-)
-
-level_X_train, level_X_test, level_y_train, level_y_test = train_test_split(
-    ConsolidatedDataFrame,
-    ConsolidatedDataFrame.index.get_level_values('level'), random_state=seed
-)
+clf_search['level'].fit(ConsolidatedDataFrame, ConsolidatedDataFrame.index.get_level_values('level'))
+clf_search['streamflow'].fit(ConsolidatedDataFrame, ConsolidatedDataFrame.index.get_level_values('streamflow'))
 
 
 # %%
-level_classifier = clf_search['level']
-streamflow_classifier = clf_search['streamflow']
+f"{clf_search['level'].best_score_} ± {clf_search['level'].cv_results_['std_test_score'][clf_search['level'].best_index_]}"
 
-streamflow_classifier.fit(streamflow_X_train, streamflow_y_train)
-level_classifier.fit(level_X_train, level_y_train)
+# %%
+f"{clf_search['streamflow'].best_score_} ± {clf_search['streamflow'].cv_results_['std_test_score'][clf_search['streamflow'].best_index_]}"
 
 
 # %%
-df = pandas.DataFrame()
-df['level'] = level_y_test
-df['p_level'] = level_classifier.predict(level_X_test)
-df['streamflow'] = streamflow_y_test
-df['p_streamflow'] = streamflow_classifier.predict(streamflow_X_test)
+level_estimator = clf_search['level'].best_estimator_
+
+# %%
+streamflow_estimator = clf_search['streamflow'].best_estimator_
+
+# %%
+full_df = pandas.DataFrame()
+full_df['level'] = ConsolidatedDataFrame.index.get_level_values('level')
+full_df['p_level'] = level_estimator.predict(ConsolidatedDataFrame)
+full_df['streamflow'] = ConsolidatedDataFrame.index.get_level_values('streamflow')
+full_df['p_streamflow'] = streamflow_estimator.predict(ConsolidatedDataFrame)
+full_df
 
 
 # %%
-level_results = pandas.DataFrame(level_classifier.cv_results_).sort_values('rank_test_score', ascending=False)
-{result['param_clf']: (result['mean_test_score'], result['std_test_score']) for _, result in level_results.iterrows()}
-
-
-# %%
-streamflow_results = pandas.DataFrame(streamflow_classifier.cv_results_).sort_values('rank_test_score', ascending=False)
-{result['param_clf']: (result['mean_test_score'], result['std_test_score'])
- for _, result in streamflow_results.iterrows()}
-
-
-# %%
-df
