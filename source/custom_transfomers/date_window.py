@@ -39,6 +39,17 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
         return new_X.dropna() if self.dropna else new_X
 
 
+class Debug(BaseEstimator, TransformerMixin):
+
+    def transform(self, X):
+        print(DataFrame(X))
+        print(X.shape)
+        return X
+
+    def fit(self, X, y=None, **fit_params):
+        return self
+
+
 class TemplateTransformer(TransformerMixin, BaseEstimator):
     """ An example transformer that returns the element-wise square root.
     For more information regarding how to build your own transformer, read more
