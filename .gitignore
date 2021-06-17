@@ -132,4 +132,4 @@ dmypy.json
 *.db*
 
 # memmory cache do pipeline
-.pipelinecache
+__pipeline_cache_*
