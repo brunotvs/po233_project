@@ -35,11 +35,12 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
         check_is_fitted(self, 'is_fitted_')
 
         new_X = X.copy()
-        X = X[self.columns].rolling(self.rolling).agg(self.aggregate)
+        temp = X[self.columns].rolling(self.rolling).agg(self.aggregate)
 
         for col in self.columns:
-            new_X[col] = X[col]
+            new_X[col] = temp[col]
 
+        del temp
         return new_X.dropna() if self.dropna else new_X
 
 
