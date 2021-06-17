@@ -18,14 +18,11 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
 
         if hasattr(self, 'is_fitted_'):
             del self.is_fitted_
-            __rolling__ = None
-            __dropna__ = False
 
         X = check_array(X, accept_sparse=True, force_all_finite='allow-nan', ensure_2d=False)
 
         self.is_fitted_ = True
 
-        __rolling__ = self.rolling
         return self
 
     def transform(self, X: DataFrame, copy=None) -> DataFrame:
