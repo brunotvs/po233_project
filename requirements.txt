@@ -11,8 +11,10 @@ colorama==0.4.4
 cycler==0.10.0
 decorator==5.0.9
 defusedxml==0.7.1
+eli5==0.11.0
 entrypoints==0.3
 googledrivedownloader==0.4
+graphviz==0.16
 greenlet==1.0.0
 idna==2.10
 ipykernel==5.5.5
@@ -70,6 +72,7 @@ Send2Trash==1.5.0
 six==1.16.0
 sklearn==0.0
 SQLAlchemy==1.4.4
+tabulate==0.8.9
 terminado==0.10.1
 testpath==0.5.0
 threadpoolctl==2.1.0

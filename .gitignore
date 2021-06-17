@@ -133,3 +133,6 @@ dmypy.json
 
 # memmory cache do pipeline
 __pipeline_cache_*
+
+# serialized models
+source/model

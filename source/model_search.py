@@ -1,5 +1,6 @@
 # %%
 import eli5
+import joblib
 import numpy
 import pandas
 from eli5.sklearn import PermutationImportance
@@ -21,10 +22,13 @@ from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
 from sqlalchemy.sql.expression import true
 
-from custom_transfomers.date_window import Debug, TimeWindowTransformer
+from custom_transfomers.time_window_transformer import TimeWindowTransformer
+from custom_transfomers.debug_transformer import Debug
 from data_base.connection import session
 from data_base.models import models
 from project_utils.data_manipulation import generate_aggregation
+
+pandas.set_option('display.max_columns', 51)
 
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
@@ -50,7 +54,6 @@ query = select(
     join(models.Reservoir, models.Variables.date == models.Reservoir.date)
 
 RawDataFrame = pandas.read_sql(query, session.bind)
-
 
 # %%
 # DataFrame consolidado porém com os atributos para cada rio posicionados em uma diferente coluna
@@ -127,38 +130,59 @@ pipeline_steps = [
         )],
         remainder='passthrough',
     )),
-    ('columns', ColumnSelector(var_cols_loc + date_cols_loc)),
+    ('columns', ColumnSelector(date_cols_loc + var_cols_loc)),
     ('debug', Debug()),
     ('reg', DummyRegressor())
 ]
 
 grid_search_params = dict(
     param_grid=[
-        {
-            'reg': [
-                TransformedTargetRegressor(
-                    transformer=MinMaxScaler(feature_range=(0, 1)),
-                    regressor=SVR(cache_size=1000)
-                )
-            ],
-            'reg__regressor__C': range(1, 15, 3),
-            'reg__regressor__gamma': ['auto', 'scale'],
-            'reg__regressor__kernel': ['rbf']
-        },
-        {
-            'reg': [
-                TransformedTargetRegressor(
-                    regressor=RandomForestRegressor()
-                )
-            ],
-            'reg__transformer': [
-                MinMaxScaler(feature_range=(0, 1)),
-                None
-            ],
-            'reg__regressor__random_state': [seed],
-            'reg__regressor__n_estimators': [1000],
-            'scaler': [None],
-        },
+        # {
+        #     'reg': [
+        #         TransformedTargetRegressor(
+        #             transformer=MinMaxScaler(feature_range=(0, 1)),
+        #             regressor=SVR(cache_size=1000)
+        #         )
+        #     ],
+        #     'reg__regressor__C': range(1, 15, 3),
+        #     'reg__regressor__gamma': ['auto', 'scale'],
+        #     'reg__regressor__kernel': ['rbf']
+        # },
+        # {
+        #     'reg': [
+        #         TransformedTargetRegressor(
+        #             regressor=RandomForestRegressor()
+        #         )
+        #     ],
+        #     'reg__transformer': [
+        #         MinMaxScaler(feature_range=(0, 1)),
+        #         None
+        #     ],
+        #     'reg__regressor__random_state': [seed],
+        #     'reg__regressor__n_estimators': [1000],
+        #     'scaler': [None],
+        # },
+        # {
+        #     'reg': [
+        #         StackingRegressor(
+        #             estimators=[
+        #                 ('RandomForest', RandomForestRegressor()),
+        #                 ('SVR', TransformedTargetRegressor(
+        #                     transformer=MinMaxScaler(feature_range=(0, 1)),
+        #                     regressor=SVR()
+        #                 ))
+        #             ],
+        #             final_estimator=TransformedTargetRegressor(
+        #                 transformer=MinMaxScaler(feature_range=(0, 1)),
+        #                 regressor=SVR()
+        #             )
+        #         )
+        #     ],
+        #     'reg__RandomForest__random_state': [seed],
+        #     'reg__RandomForest__n_estimators': [1000],
+        #     'reg__SVR__regressor__C': range(1, 16, 5),
+        #     'reg__final_estimator__regressor__C': range(1, 16, 5),
+        # },
         {
             'reg': [
                 StackingRegressor(
@@ -169,17 +193,14 @@ grid_search_params = dict(
                             regressor=SVR()
                         ))
                     ],
-                    final_estimator=TransformedTargetRegressor(
-                        transformer=MinMaxScaler(feature_range=(0, 1)),
-                        regressor=SVR()
-                    )
+                    final_estimator=Ridge()
                 )
             ],
             'reg__RandomForest__random_state': [seed],
             'reg__RandomForest__n_estimators': [1000],
             'reg__SVR__regressor__C': range(1, 16, 5),
-            'reg__final_estimator__regressor__C': range(1, 16, 5)
-        }
+        },
+
     ],
     scoring='neg_root_mean_squared_error',
     cv=cv,
@@ -223,7 +244,7 @@ for target in targets:
         best_windowing=1,
         best_params=None,
         best_score=-9999,
-        best_estimator=None,
+        best_estimator=reg_search[target].estimator,
         windowing_score={},
     )
     for roll in [20]:  # range(1, 12, 5):
@@ -233,11 +254,11 @@ for target in targets:
         if reg_search[target].best_score_ > regressor[target]['best_score']:
             regressor[target]['best_score'] = reg_search[target].best_score_
             regressor[target]['best_params'] = reg_search[target].best_params_
-            regressor[target]['best_estimator'] = reg_search[target].estimator
             regressor[target]['best_estimator'].set_params(**regressor[target]['best_params'])
             regressor[target]['best_windowing'] = roll
 
 # %%
+# Calcular scores do melhor estimador
 for target in targets:
     WindowedDataFrame = TimeWindowTransformer(
         columns=var_cols,
@@ -254,7 +275,7 @@ for target in targets:
         n_jobs=-1)
 
 # %%
-
+# Printar scores encontrados
 for target in targets:
     for key, val in regressor[target]['cv_score'].items():
         print(f'{target} -> {key}: {val.mean()} ± {val.std()}')
@@ -262,6 +283,7 @@ for target in targets:
     print('\n')
 
 # %%
+
 df = pandas.DataFrame()
 
 for target in targets:
@@ -288,19 +310,30 @@ WindowedDataFrame = TimeWindowTransformer(
 
 regressor['level']['best_estimator'].fit(WindowedDataFrame, WindowedDataFrame['level'])
 
-WindowedDataFrame
-# %%
-pandas.DataFrame(MinMaxScaler().fit_transform(WindowedDataFrame))
-
 # %%
 perm = PermutationImportance(
     regressor['level']['best_estimator'],
     random_state=1).fit(
-        WindowedDataFrame[var_cols + date_cols],
+        WindowedDataFrame,
     WindowedDataFrame['level'])
 
 # %%
-names = var_cols_loc + date_cols_loc  # [str(x[0]) + str(x[1]) for x in WindowedDataFrame.columns]
+names = [str(x[0]) + str(x[1]) for x in WindowedDataFrame.columns]
 eli5.show_weights(perm, feature_names=names, top=50)
+
+# %%
+# Salvar os modelos
+for target in targets:
+    joblib.dump(regressor[target]['best_estimator'], f'model/{target}.pkl')
+
+# %%
+
+# %%
+# Carregar o modelo
+for target in targets:
+    model = joblib.load(f'model/{target}.pkl')
+    df[target] = WindowedDataFrame[target]
+    df[f'p_{target}'] = model.predict(WindowedDataFrame)
+df
 
 # %%
