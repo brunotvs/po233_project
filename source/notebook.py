@@ -1,9 +1,11 @@
 # %%
+import eli5
 import numpy
 import pandas
+from eli5.sklearn import PermutationImportance
 from IPython import get_ipython
 from mlxtend.feature_selection import ColumnSelector
-from sklearn.compose import TransformedTargetRegressor, ColumnTransformer
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor, StackingRegressor
 from sklearn.impute import SimpleImputer
@@ -126,6 +128,7 @@ pipeline_steps = [
         remainder='passthrough',
     )),
     ('columns', ColumnSelector(var_cols_loc + date_cols_loc)),
+    ('debug', Debug()),
     ('reg', DummyRegressor())
 ]
 
@@ -187,7 +190,12 @@ grid_search_params = dict(
 
 
 # %%
-targets = ['level', 'streamflow', 'level_variation', 'streamflow_variation']
+targets = [
+    'level',
+    # 'streamflow',
+    # 'level_variation',
+    # 'streamflow_variation'
+]
 
 reg_search = {
     target: GridSearchCV(
@@ -218,7 +226,7 @@ for target in targets:
         best_estimator=None,
         windowing_score={},
     )
-    for roll in [1, 30]:  # range(1, 12, 5):
+    for roll in [20]:  # range(1, 12, 5):
         data = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ConsolidatedDataFrame)
         regressor[target]['windowing_score'][roll] = reg_search[target].fit(data, data[target])
 
@@ -233,7 +241,7 @@ for target in targets:
 for target in targets:
     WindowedDataFrame = TimeWindowTransformer(
         columns=var_cols,
-        rolling=30,
+        rolling=regressor[target]['best_windowing'],
         aggregate=agg,
         dropna=True).fit_transform(ConsolidatedDataFrame)
 
@@ -259,7 +267,7 @@ df = pandas.DataFrame()
 for target in targets:
     WindowedDataFrame = TimeWindowTransformer(
         columns=var_cols,
-        rolling=30,
+        rolling=regressor[target]['best_windowing'],
         aggregate=agg,
         dropna=True).fit_transform(ConsolidatedDataFrame)
     regressor[target]['best_estimator'].fit(WindowedDataFrame, WindowedDataFrame[target])
@@ -270,5 +278,29 @@ df
 # %%
 for target in targets:
     print(f'{target} - {regressor[target]["best_params"]} - {regressor[target]["best_windowing"]}\n\n')
+
+# %%
+WindowedDataFrame = TimeWindowTransformer(
+    columns=var_cols,
+    rolling=regressor['level']['best_windowing'],
+    aggregate=agg,
+    dropna=True).fit_transform(ConsolidatedDataFrame)
+
+regressor['level']['best_estimator'].fit(WindowedDataFrame, WindowedDataFrame['level'])
+
+WindowedDataFrame
+# %%
+pandas.DataFrame(MinMaxScaler().fit_transform(WindowedDataFrame))
+
+# %%
+perm = PermutationImportance(
+    regressor['level']['best_estimator'],
+    random_state=1).fit(
+        WindowedDataFrame[var_cols + date_cols],
+    WindowedDataFrame['level'])
+
+# %%
+names = var_cols_loc + date_cols_loc  # [str(x[0]) + str(x[1]) for x in WindowedDataFrame.columns]
+eli5.show_weights(perm, feature_names=names, top=50)
 
 # %%
