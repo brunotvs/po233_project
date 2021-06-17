@@ -1,0 +1,129 @@
+# %%
+import eli5
+import joblib
+import numpy
+import pandas
+from eli5.sklearn import PermutationImportance
+from google_drive_downloader import GoogleDriveDownloader as gdd
+from IPython import get_ipython
+from mlxtend.feature_selection import ColumnSelector
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from sklearn.dummy import DummyRegressor
+from sklearn.ensemble import RandomForestRegressor, StackingRegressor
+from sklearn.impute import SimpleImputer
+from sklearn.linear_model import Ridge
+from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
+                             precision_score, recall_score)
+from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
+                                     cross_validate, train_test_split)
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.svm import SVR
+from sklearn.tree import DecisionTreeRegressor
+from sqlalchemy import select
+from sqlalchemy.sql.expression import true
+
+from custom_transfomers.debug_transformer import Debug
+from custom_transfomers.time_window_transformer import TimeWindowTransformer
+from data_base.connection import session
+from data_base.models import models
+from project_utils.data_manipulation import generate_aggregation
+
+pandas.set_option('display.max_columns', 51)
+
+
+# %%
+query = select(
+    models.Variables.date,
+    models.Variables.precipitation.label('precipitation'),
+    models.Variables.temperature.label('temperature'),
+    models.Variables.evaporation.label('evaporation'),
+    models.Variables.surface_runoff.label('surface_runoff'),
+    models.Coordinate.river_id.label('river'),
+    models.Reservoir.level,
+    models.Reservoir.streamflow
+).\
+    join(models.Variables.coordinate).\
+    join(models.Reservoir, models.Variables.date == models.Reservoir.date)
+
+RawDataFrame = pandas.read_sql(query, session.bind)
+
+
+# %%
+# DataFrame consolidado porém com os atributos para cada rio posicionados em uma diferente coluna
+ConsolidatedDataFrame = (
+    RawDataFrame.
+    groupby(['date', 'level', 'river', 'streamflow']).
+    agg({
+        'precipitation': 'sum',
+        'evaporation': 'sum',
+        'temperature': 'mean',
+        'surface_runoff': 'mean',
+    }).
+    reset_index().
+    pivot(index=["date", 'level', 'streamflow'], columns="river").
+    reset_index(['level', 'streamflow'])
+)
+
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 1,
+    column='previous_level',
+    value=pandas.DataFrame(ConsolidatedDataFrame['level']).shift(1).values
+)
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('streamflow', '')) + 1,
+    column='previous_streamflow',
+    value=pandas.DataFrame(ConsolidatedDataFrame['streamflow']).shift(1).values
+)
+
+ConsolidatedDataFrame = ConsolidatedDataFrame.dropna()
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 2,
+    column='level_variation',
+    value=ConsolidatedDataFrame.level - ConsolidatedDataFrame.previous_level
+)
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('streamflow', '')) + 2,
+    column='streamflow_variation',
+    value=ConsolidatedDataFrame.streamflow - ConsolidatedDataFrame.previous_streamflow
+)
+
+months = [date.month for date in ConsolidatedDataFrame.index.get_level_values('date')]
+ConsolidatedDataFrame.insert(0, 'month', months)
+
+
+# %%
+targets = [
+    'level',
+    # 'streamflow',
+    # 'level_variation',
+    # 'streamflow_variation'
+]
+
+targets_models = {
+    'level': '1ruUuRqO5NKXlh-IXQ6pGPH02CrQWaMWP'
+}
+
+# %%
+# Carregar o modelo
+regression_models = {}
+for target in targets:
+    gdd.download_file_from_google_drive(
+        file_id=targets_models[target],
+        dest_path=f'model/{target}.pkl',
+        overwrite=True,
+        showsize=True)
+    regression_models[target] = joblib.load(f'model/{target}.pkl')
+
+# %%
+df = pandas.DataFrame()
+for target in targets:
+    df[target] = ConsolidatedDataFrame[target]
+    df[f'p_{target}'] = regression_models[target].predict(ConsolidatedDataFrame)
+df
+
+# %%
