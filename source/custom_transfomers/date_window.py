@@ -3,6 +3,7 @@ from typing import Union
 import numpy as np
 from pandas import DataFrame
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
+from sklearn.exceptions import NotFittedError
 from sklearn.metrics import euclidean_distances
 from sklearn.utils.multiclass import unique_labels
 from sklearn.utils.validation import check_array, check_is_fitted, check_X_y
@@ -20,14 +21,17 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
 
         if hasattr(self, 'is_fitted_'):
             del self.is_fitted_
+            __rolling__ = None
+            __dropna__ = False
 
         X = check_array(X, accept_sparse=True, force_all_finite='allow-nan', ensure_2d=False)
 
         self.is_fitted_ = True
 
+        __rolling__ = self.rolling
         return self
 
-    def transform(self, X: DataFrame) -> DataFrame:
+    def transform(self, X: DataFrame, copy=None) -> DataFrame:
         check_is_fitted(self, 'is_fitted_')
 
         new_X = X.copy()
@@ -37,6 +41,37 @@ class TimeWindowTransformer(TransformerMixin, BaseEstimator):
             new_X[col] = X[col]
 
         return new_X.dropna() if self.dropna else new_X
+
+
+class YTimeWindowTransformer(TransformerMixin, BaseEstimator):
+
+    def __init__(self, x_time_windowing_transformer: TimeWindowTransformer) -> None:
+        self.x_time_windowing_transformer = x_time_windowing_transformer
+
+    def fit(self, X, y=None) -> 'TimeWindowTransformer':
+
+        if hasattr(self, 'is_fitted_'):
+            del self.is_fitted_
+            del self.rolling
+
+        X = check_array(X, ensure_2d=True)
+
+        self.is_fitted_ = True
+
+        return self
+
+    def transform(self, X: DataFrame, copy=None) -> DataFrame:
+        check_is_fitted(self, 'is_fitted_')
+
+        new_X = X.copy() if copy else None
+        if self.x_time_windowing_transformer.dropna:
+            new_X.drop(range(self.x_time_windowing_transformer.rolling))
+
+        return new_X
+
+    def inverse_transform(self, X: DataFrame, copy=None) -> DataFrame:
+        new_X = X.copy() if copy else X
+        return new_X
 
 
 class Debug(BaseEstimator, TransformerMixin):

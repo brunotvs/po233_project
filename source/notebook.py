@@ -1,34 +1,31 @@
-# To add a new cell, type '# %%'
-# To add a new markdown cell, type '# %% [markdown]'
 # %%
-from IPython import get_ipython
-
-# %%
+import numpy
 import pandas
 from IPython import get_ipython
-from sklearn import tree
-from sklearn.compose import TransformedTargetRegressor
-from sklearn.decomposition import PCA
+from mlxtend.feature_selection import ColumnSelector
+from sklearn.compose import TransformedTargetRegressor, ColumnTransformer
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor, StackingRegressor
-from sklearn.feature_selection import SelectKBest, VarianceThreshold
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
                              precision_score, recall_score)
 from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
-                                     train_test_split)
+                                     cross_validate, train_test_split)
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
+from sqlalchemy.sql.expression import true
 
-from custom_transfomers.date_window import TimeWindowTransformer, Debug
+from custom_transfomers.date_window import Debug, TimeWindowTransformer
 from data_base.connection import session
 from data_base.models import models
 from project_utils.data_manipulation import generate_aggregation
 
+# To add a new cell, type '# %%'
+# To add a new markdown cell, type '# %% [markdown]'
 
 # %%
 # Construção do dataframe utilizando buscas no banco de dados sql
@@ -65,15 +62,39 @@ ConsolidatedDataFrame = (
         'surface_runoff': 'mean',
     }).
     reset_index().
-    pivot(index=["date", 'level', 'streamflow'], columns="river")
+    pivot(index=["date", 'level', 'streamflow'], columns="river").
+    reset_index(['level', 'streamflow'])
 )
 
-ConsolidatedDataFrame.insert(0, 'previous_streamflow', pandas.DataFrame(
-    ConsolidatedDataFrame.index.get_level_values('streamflow')).shift(1).values)
-ConsolidatedDataFrame.insert(0, 'previous_level', pandas.DataFrame(
-    ConsolidatedDataFrame.index.get_level_values('level')).shift(1).values)
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 1,
+    column='previous_level',
+    value=pandas.DataFrame(ConsolidatedDataFrame['level']).shift(1).values
+)
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('streamflow', '')) + 1,
+    column='previous_streamflow',
+    value=pandas.DataFrame(ConsolidatedDataFrame['streamflow']).shift(1).values
+)
 
 ConsolidatedDataFrame = ConsolidatedDataFrame.dropna()
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 2,
+    column='level_variation',
+    value=ConsolidatedDataFrame.level - ConsolidatedDataFrame.previous_level
+)
+
+ConsolidatedDataFrame.insert(
+    loc=ConsolidatedDataFrame.columns.get_loc(('streamflow', '')) + 2,
+    column='streamflow_variation',
+    value=ConsolidatedDataFrame.streamflow - ConsolidatedDataFrame.previous_streamflow
+)
+
+months = [date.month for date in ConsolidatedDataFrame.index.get_level_values('date')]
+ConsolidatedDataFrame.insert(0, 'month', months)
 
 
 # %%
@@ -82,12 +103,105 @@ scorer = make_scorer(accuracy_score)
 
 rivers = session.query(models.River).all()
 
+var_cols = ['precipitation', 'evaporation', 'temperature', 'surface_runoff']
+var_cols_river = [(var, river.id) for river in rivers for var in var_cols]
+var_cols_loc = [ConsolidatedDataFrame.columns.get_loc(col) for col in var_cols_river]
+
+date_cols = ['month']
+date_cols_loc = [ConsolidatedDataFrame.columns.get_loc((col, '')) for col in date_cols]
+
+previous_cols = ['previous_level', 'previous_streamflow']
+previous_cols_loc = [ConsolidatedDataFrame.columns.get_loc((col, '')) for col in previous_cols]
+
+# %%
+cv = KFold(n_splits=3, random_state=seed, shuffle=True)
+
+pipeline_steps = [
+    ('scaler', ColumnTransformer(
+        [(
+            'normalize',
+            MinMaxScaler(feature_range=(0, 1)),
+            var_cols_loc
+        )],
+        remainder='passthrough',
+    )),
+    ('columns', ColumnSelector(var_cols_loc + date_cols_loc)),
+    ('reg', DummyRegressor())
+]
+
+grid_search_params = dict(
+    param_grid=[
+        {
+            'reg': [
+                TransformedTargetRegressor(
+                    transformer=MinMaxScaler(feature_range=(0, 1)),
+                    regressor=SVR(cache_size=1000)
+                )
+            ],
+            'reg__regressor__C': range(1, 15, 3),
+            'reg__regressor__gamma': ['auto', 'scale'],
+            'reg__regressor__kernel': ['rbf']
+        },
+        {
+            'reg': [
+                TransformedTargetRegressor(
+                    regressor=RandomForestRegressor()
+                )
+            ],
+            'reg__transformer': [
+                MinMaxScaler(feature_range=(0, 1)),
+                None
+            ],
+            'reg__regressor__random_state': [seed],
+            'reg__regressor__n_estimators': [1000],
+            'scaler': [None],
+        },
+        {
+            'reg': [
+                StackingRegressor(
+                    estimators=[
+                        ('RandomForest', RandomForestRegressor()),
+                        ('SVR', TransformedTargetRegressor(
+                            transformer=MinMaxScaler(feature_range=(0, 1)),
+                            regressor=SVR()
+                        ))
+                    ],
+                    final_estimator=TransformedTargetRegressor(
+                        transformer=MinMaxScaler(feature_range=(0, 1)),
+                        regressor=SVR()
+                    )
+                )
+            ],
+            'reg__RandomForest__random_state': [seed],
+            'reg__RandomForest__n_estimators': [1000],
+            'reg__SVR__regressor__C': range(1, 16, 5),
+            'reg__final_estimator__regressor__C': range(1, 16, 5)
+        }
+    ],
+    scoring='neg_root_mean_squared_error',
+    cv=cv,
+    n_jobs=-1,
+    error_score='raise',
+    refit=False
+)
+
+
+# %%
+targets = ['level', 'streamflow', 'level_variation', 'streamflow_variation']
+
+reg_search = {
+    target: GridSearchCV(
+        Pipeline(
+            steps=pipeline_steps,
+            # memory=f'__pipeline_cache_{target}__'
+        ),
+        **grid_search_params) for target in targets}
+
+# %%
 precipitation_agg = generate_aggregation('sum', 'precipitation', [river.id for river in rivers])
 evaporation_agg = generate_aggregation('sum', 'evaporation', [river.id for river in rivers])
-temperature_agg = generate_aggregation('mean', 'temperature', [river.id for river in rivers])
-runoff_agg = generate_aggregation('mean', 'surface_runoff', [river.id for river in rivers])
-
-cols = ['precipitation', 'evaporation', 'temperature', 'surface_runoff']
+temperature_agg = generate_aggregation('sum', 'temperature', [river.id for river in rivers])
+runoff_agg = generate_aggregation('sum', 'surface_runoff', [river.id for river in rivers])
 
 agg = precipitation_agg
 agg.update(evaporation_agg)
@@ -95,107 +209,66 @@ agg.update(temperature_agg)
 agg.update(runoff_agg)
 
 # %%
-cv = KFold(n_splits=10, random_state=seed, shuffle=True)
+regressor = {}
+for target in targets:
+    regressor[target] = dict(
+        best_windowing=1,
+        best_params=None,
+        best_score=-9999,
+        best_estimator=None,
+        windowing_score={},
+    )
+    for roll in [1, 30]:  # range(1, 12, 5):
+        data = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ConsolidatedDataFrame)
+        regressor[target]['windowing_score'][roll] = reg_search[target].fit(data, data[target])
 
-windowing_params = {
-    'windowing__aggregate': [agg],
-    'windowing__rolling': range(1, 32, 10),
-    'windowing__dropna': [False],
-}
-
-grid_search_params = dict(
-    estimator=Pipeline(
-        [
-            ('windowing', TimeWindowTransformer(columns=cols)),
-            ('imputer', SimpleImputer(strategy='mean')),
-            ('scaler', MinMaxScaler(feature_range=(0, 1))),
-            ('clf', DummyRegressor())
-        ]
-    ),
-    param_grid=[
-        {
-            **windowing_params,
-            'clf': [TransformedTargetRegressor(
-                regressor=SVR(cache_size=1000)
-            )],
-            'clf__transformer': [MinMaxScaler(feature_range=(0, 1))],
-            'clf__regressor__C': range(1, 15, 3),
-            'clf__regressor__gamma': ['auto', 'scale'],
-            'clf__regressor__kernel': ['rbf']
-        },
-        {
-            **windowing_params,
-            'scaler': [MinMaxScaler(), None],
-            'clf': [TransformedTargetRegressor(
-                regressor=RandomForestRegressor()
-            )],
-            'clf__transformer': [MinMaxScaler(feature_range=(0, 1)), None],
-            'clf__regressor__random_state': [seed],
-            'clf__regressor__n_estimators': [200],
-        },
-        {
-            **windowing_params,
-            'clf': (DecisionTreeRegressor(), ),
-            'clf__random_state': [seed]
-        },
-        {
-            **windowing_params,
-            'clf': (StackingRegressor(
-                estimators=[
-                    ('RandomForest', RandomForestRegressor()),
-                    ('SVR', TransformedTargetRegressor(
-                        transformer=MinMaxScaler(feature_range=(0, 1)),
-                        regressor=SVR()
-                    ))
-                ],
-                final_estimator=TransformedTargetRegressor(
-                    transformer=MinMaxScaler(feature_range=(0, 1)),
-                    regressor=SVR()
-                )
-            ),),
-            'clf__RandomForest__random_state': [seed],
-            'clf__RandomForest__n_estimators': [200],
-            'clf__SVR__regressor__C': range(1, 16, 5),
-            'clf__final_estimator__regressor__C': range(1, 16, 5)
-        }
-    ],
-    scoring='r2',
-    cv=cv,
-    n_jobs=-1,
-    verbose=1,
-    error_score='raise'
-)
-
+        if reg_search[target].best_score_ > regressor[target]['best_score']:
+            regressor[target]['best_score'] = reg_search[target].best_score_
+            regressor[target]['best_params'] = reg_search[target].best_params_
+            regressor[target]['best_estimator'] = reg_search[target].estimator
+            regressor[target]['best_estimator'].set_params(**regressor[target]['best_params'])
+            regressor[target]['best_windowing'] = roll
 
 # %%
-targets = ['level', 'streamflow']
+for target in targets:
+    WindowedDataFrame = TimeWindowTransformer(
+        columns=var_cols,
+        rolling=30,
+        aggregate=agg,
+        dropna=True).fit_transform(ConsolidatedDataFrame)
 
-clf_search = {target: GridSearchCV(**grid_search_params) for target in targets}
-
-clf_search['level'].fit(ConsolidatedDataFrame, ConsolidatedDataFrame.index.get_level_values('level'))
-clf_search['streamflow'].fit(ConsolidatedDataFrame, ConsolidatedDataFrame.index.get_level_values('streamflow'))
-
-
-# %%
-f"{clf_search['level'].best_score_} ± {clf_search['level'].cv_results_['std_test_score'][clf_search['level'].best_index_]}"
-
-# %%
-f"{clf_search['streamflow'].best_score_} ± {clf_search['streamflow'].cv_results_['std_test_score'][clf_search['streamflow'].best_index_]}"
-
-
-# %%
-level_estimator = clf_search['level'].best_estimator_
+    regressor[target]['cv_score'] = cross_validate(
+        regressor[target]['best_estimator'],
+        WindowedDataFrame,
+        WindowedDataFrame[target],
+        cv=10,
+        scoring=['neg_root_mean_squared_error', 'r2'],
+        n_jobs=-1)
 
 # %%
-streamflow_estimator = clf_search['streamflow'].best_estimator_
+
+for target in targets:
+    for key, val in regressor[target]['cv_score'].items():
+        print(f'{target} -> {key}: {val.mean()} ± {val.std()}')
+
+    print('\n')
 
 # %%
-full_df = pandas.DataFrame()
-full_df['level'] = ConsolidatedDataFrame.index.get_level_values('level')
-full_df['p_level'] = level_estimator.predict(ConsolidatedDataFrame)
-full_df['streamflow'] = ConsolidatedDataFrame.index.get_level_values('streamflow')
-full_df['p_streamflow'] = streamflow_estimator.predict(ConsolidatedDataFrame)
-full_df
+df = pandas.DataFrame()
 
+for target in targets:
+    WindowedDataFrame = TimeWindowTransformer(
+        columns=var_cols,
+        rolling=30,
+        aggregate=agg,
+        dropna=True).fit_transform(ConsolidatedDataFrame)
+    regressor[target]['best_estimator'].fit(WindowedDataFrame, WindowedDataFrame[target])
+    df[target] = WindowedDataFrame[target]
+    df[f'p_{target}'] = regressor[target]['best_estimator'].predict(WindowedDataFrame)
+df
+
+# %%
+for target in targets:
+    print(f'{target} - {regressor[target]["best_params"]} - {regressor[target]["best_windowing"]}\n\n')
 
 # %%
