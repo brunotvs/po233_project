@@ -233,6 +233,7 @@ grid_search_params = dict(
     scoring='r2',
     cv=cv,
     n_jobs=-1,
+    verbose=10,
     refit=False
 )
 
