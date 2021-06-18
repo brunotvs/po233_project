@@ -208,7 +208,7 @@ grid_search_params = dict(
                 )
             ],
             'reg__RandomForest__random_state': [seed],
-            'reg__RandomForest__n_estimators': [1000],
+            'reg__RandomForest__n_estimators': [10, 100, 1000],
             'reg__SVR__regressor__C': range(15, 31, 5),
             'reg__final_estimator__regressor__C': range(7, 16, 5),
         },
