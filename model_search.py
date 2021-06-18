@@ -85,17 +85,18 @@ ConsolidatedDataFrame = (
     reset_index(['level', 'streamflow'])
 )
 
+shift = 7
 
 ConsolidatedDataFrame.insert(
     loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 1,
     column='previous_level',
-    value=pandas.DataFrame(ConsolidatedDataFrame['level']).shift(1).values
+    value=pandas.DataFrame(ConsolidatedDataFrame['level']).shift(shift).values
 )
 
 ConsolidatedDataFrame.insert(
     loc=ConsolidatedDataFrame.columns.get_loc(('streamflow', '')) + 1,
     column='previous_streamflow',
-    value=pandas.DataFrame(ConsolidatedDataFrame['streamflow']).shift(1).values
+    value=pandas.DataFrame(ConsolidatedDataFrame['streamflow']).shift(shift).values
 )
 
 ConsolidatedDataFrame = ConsolidatedDataFrame.dropna()
@@ -137,44 +138,45 @@ cv = KFold(n_splits=3, random_state=seed, shuffle=True)
 
 
 pipeline_steps = [
-    ('test', TestTransformer(3)),
-    # ('test_debug', Debug()),
-    ('target_col', TestTargetColumnSelector('level')),
-    ('debug', Debug()),
-    ('reg', TransformedTargetRegressor(
-        transformer=Debug(),
-        regressor=DecisionTreeRegressor(max_depth=5))
-     )
-    # ('columns', ColumnTransformer([
-    #     (
-    #         'normalize',
-    #         MinMaxScaler(feature_range=(0, 1)),
-    #         ColumnsLoc(var_cols).get_loc
-    #     ),
-    #     (
-    #         'month',
-    #         OrdinalEncoder(),
-    #         ColumnsLoc(date_cols).get_loc
-    #     )
-    # ],
-    #     remainder='drop',
-    # )),
-
+    ('columns', ColumnTransformer([
+        (
+            'normalize',
+            MinMaxScaler(feature_range=(0, 1)),
+            ColumnsLoc(var_cols).get_loc
+        ),
+        (
+            'month',
+            OrdinalEncoder(),
+            ColumnsLoc(date_cols).get_loc
+        ),
+        (
+            'historical',
+            'passthrough',
+            ColumnsLoc(previous_cols).get_loc
+        )
+    ],
+        remainder='drop',
+    )),
+    ('reg', DummyRegressor())
 ]
 
 grid_search_params = dict(
     param_grid=[
-        # {
-        #     'reg': [
-        #         TransformedTargetRegressor(
-        #             transformer=MinMaxScaler(feature_range=(0, 1)),
-        #             regressor=SVR(cache_size=1000)
-        #         )
-        #     ],
-        #     'reg__regressor__C': range(1, 15, 3),
-        #     'reg__regressor__gamma': ['auto', 'scale'],
-        #     'reg__regressor__kernel': ['rbf']
-        # },
+        # Para testes rápidos
+        {
+            'reg': [DecisionTreeRegressor(max_depth=5)]
+        },
+        {
+            'reg': [
+                TransformedTargetRegressor(
+                    transformer=MinMaxScaler(feature_range=(0, 1)),
+                    regressor=SVR(cache_size=1000)
+                )
+            ],
+            'reg__regressor__C': range(15, 31, 5),
+            'reg__regressor__gamma': ['auto', 'scale'],
+            'reg__regressor__kernel': ['rbf']
+        },
         {
             'reg': [
                 TransformedTargetRegressor(
@@ -186,81 +188,54 @@ grid_search_params = dict(
                 None
             ],
             'reg__regressor__random_state': [seed],
-            'reg__regressor__n_estimators': [50],
+            'reg__regressor__n_estimators': [10, 100, 1000],
             'columns__normalize': ['passthrough'],
         },
-        # {
-        #     'reg': [
-        #         StackingRegressor(
-        #             estimators=[
-        #                 ('RandomForest', RandomForestRegressor()),
-        #                 ('SVR', TransformedTargetRegressor(
-        #                     transformer=MinMaxScaler(feature_range=(0, 1)),
-        #                     regressor=SVR()
-        #                 ))
-        #             ],
-        #             final_estimator=TransformedTargetRegressor(
-        #                 transformer=MinMaxScaler(feature_range=(0, 1)),
-        #                 regressor=SVR()
-        #             )
-        #         )
-        #     ],
-        #     'reg__RandomForest__random_state': [seed],
-        #     'reg__RandomForest__n_estimators': [1000],
-        #     'reg__SVR__regressor__C': range(1, 16, 5),
-        #     'reg__final_estimator__regressor__C': range(1, 16, 5),
-        # },
-        # {
-        #     'reg': [
-        #         StackingRegressor(
-        #             estimators=[
-        #                 ('RandomForest', RandomForestRegressor()),
-        #                 ('SVR', TransformedTargetRegressor(
-        #                     transformer=MinMaxScaler(feature_range=(0, 1)),
-        #                     regressor=SVR()
-        #                 ))
-        #             ],
-        #             final_estimator=Ridge()
-        #         )
-        #     ],
-        #     'reg__RandomForest__random_state': [seed],
-        #     'reg__RandomForest__n_estimators': [1000],
-        #     'reg__SVR__regressor__C': range(1, 16, 5),
-        # },
-
+        {
+            'reg': [
+                StackingRegressor(
+                    estimators=[
+                        ('RandomForest', RandomForestRegressor()),
+                        ('SVR', TransformedTargetRegressor(
+                            transformer=MinMaxScaler(feature_range=(0, 1)),
+                            regressor=SVR()
+                        ))
+                    ],
+                    final_estimator=TransformedTargetRegressor(
+                        transformer=MinMaxScaler(feature_range=(0, 1)),
+                        regressor=SVR()
+                    )
+                )
+            ],
+            'reg__RandomForest__random_state': [seed],
+            'reg__RandomForest__n_estimators': [1000],
+            'reg__SVR__regressor__C': range(15, 31, 5),
+            'reg__final_estimator__regressor__C': range(7, 16, 5),
+        },
+        {
+            'reg': [
+                StackingRegressor(
+                    estimators=[
+                        ('RandomForest', RandomForestRegressor()),
+                        ('SVR', TransformedTargetRegressor(
+                            transformer=MinMaxScaler(feature_range=(0, 1)),
+                            regressor=SVR()
+                        ))
+                    ],
+                    final_estimator=Ridge()
+                )
+            ],
+            'reg__RandomForest__random_state': [seed],
+            'reg__RandomForest__n_estimators': [10, 100, 1000],
+            'reg__SVR__regressor__C': range(1, 16, 5),
+        },
     ],
-    scoring='neg_root_mean_squared_error',
+    scoring='r2',
     cv=cv,
     n_jobs=-1,
-    error_score='raise',
     refit=False
 )
 
-# %%
-ConsolidatedDataFrame
-
-# %%
-transform_dataframe_pipeline = [
-    ('group', GroupByTransformer(['date', 'level', 'river', 'streamflow'])),
-    # ('debug1', DebugY()),
-    ('aggregate', AggregateTransformer({
-        'precipitation': 'sum',
-        'evaporation': 'sum',
-        'temperature': 'mean',
-        'surface_runoff': 'mean',
-    })),
-    # # ('debug2', DebugY()),
-    # ('reset_all_index', ResetIndexTransformer()),
-    # ('debug3', Debug()),
-    # ('pivot', PivotTransformer(index=["date", 'level', 'streamflow'], columns="river")),
-    # ('reset_index', ResetIndexTransformer(['level', 'streamflow']))
-]
-p = Pipeline(transform_dataframe_pipeline)
-
-# %%
-X = RawDataFrame.copy()
-y = RawDataFrame.copy()
-p.fit_transform(X, y)
 # %%
 # GridSearch para cada target
 reg_search = {
@@ -290,11 +265,11 @@ for target in targets:
         best_params=None,
         best_score=-9999,
         best_estimator=reg_search[target].estimator,
-        windowing_score={},
+        estimators={},
     )
-    for roll in [20]:  # range(1, 12, 5):
-        data = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ConsolidatedDataFrame)
-        regressor[target]['windowing_score'][roll] = reg_search[target].fit(data, data[target])
+    for roll in [1]:  # range(1, 22, 10):
+        WindowedDataFrame = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ConsolidatedDataFrame)
+        regressor[target]['estimators'][roll] = reg_search[target].fit(WindowedDataFrame, WindowedDataFrame[target])
 
         if reg_search[target].best_score_ > regressor[target]['best_score']:
             regressor[target]['best_score'] = reg_search[target].best_score_
@@ -360,10 +335,6 @@ for target in targets:
 df
 
 # %%
-for target in targets:
-    print(f'{target} - {regressor[target]["best_params"]} - {regressor[target]["best_windowing"]}\n\n')
-
-# %%
 # Salvar os modelos
 for target in targets:
-    joblib.dump(regressor[target]['best_estimator'], f'model/{target}.pkl')
+    joblib.dump(regressor[target], f'model/{target}-s_d0{shift}.pkl')

@@ -30,7 +30,7 @@ from source.custom_transfomers.time_window_transformer import \
     TimeWindowTransformer
 from source.data_base.connection import session
 from source.data_base.models import models
-from source.project_utils.constants import targets
+from source.project_utils.constants import targets, targets_models
 from source.project_utils.data_manipulation import generate_aggregation
 
 pandas.set_option('display.max_columns', 51)
@@ -103,14 +103,14 @@ ConsolidatedDataFrame.insert(0, 'month', months)
 # %%
 # Carregar o modelo
 regression_models = {}
-for target in targets:
+for target, _ in targets_models.items():
     regression_models[target] = joblib.load(f'model/{target}.pkl')
 
 # %%
 df = pandas.DataFrame()
-for target in targets:
-    df[target] = ConsolidatedDataFrame[target]
-    df[f'p_{target}'] = regression_models[target].predict(ConsolidatedDataFrame)
+for target, _ in targets_models.items():
+    df[target.split('_')[0]] = ConsolidatedDataFrame[target.split('-')[0]]
+    df[f'p_{target}'] = regression_models[target]['best_estimator'].predict(ConsolidatedDataFrame)
 df
 
 # %%

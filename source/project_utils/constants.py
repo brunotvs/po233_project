@@ -1,10 +1,10 @@
 targets = [
-    'level',
-    # 'streamflow',
+    # 'level',
+    'streamflow',
     # 'level_variation',
     # 'streamflow_variation'
 ]
 
 targets_models = {
-    'level': '1MFx5l0_stavsU1X_7NMlrpruG_16xP4h'
+    'streamflow-s_d07': '1ogxLbQdyn4gQu5MXqReHKQC4QuP3SjOz'
 }
