@@ -6,6 +6,7 @@ import pandas
 from eli5.sklearn import PermutationImportance
 from IPython import get_ipython
 from mlxtend.feature_selection import ColumnSelector
+from scipy.stats.stats import DescribeResult
 from sklearn.compose import (ColumnTransformer, TransformedTargetRegressor,
                              make_column_selector)
 from sklearn.dummy import DummyRegressor
@@ -24,7 +25,14 @@ from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
 from sqlalchemy.sql.expression import true
 
-from source.custom_transfomers.debug_transformer import Debug
+from source.custom_transfomers.dataframe_transformers import (
+    AggregateTransformer,
+    GroupByTransformer,
+    PivotTransformer,
+    ResetIndexTransformer,
+    TestTargetColumnSelector,
+    TestTransformer)
+from source.custom_transfomers.debug_transformer import Debug, DebugY
 from source.custom_transfomers.time_window_transformer import \
     TimeWindowTransformer
 from source.data_base.connection import session
@@ -56,7 +64,8 @@ query = select(
     models.Reservoir.streamflow
 ).\
     join(models.Variables.coordinate).\
-    join(models.Reservoir, models.Variables.date == models.Reservoir.date)
+    join(models.Reservoir, models.Variables.date == models.Reservoir.date).\
+    order_by(models.Variables.date)
 
 RawDataFrame = pandas.read_sql(query, session.bind)
 
@@ -126,22 +135,31 @@ previous_cols_loc = [ConsolidatedDataFrame.columns.get_loc((col, '')) for col in
 # %%
 cv = KFold(n_splits=3, random_state=seed, shuffle=True)
 
+
 pipeline_steps = [
-    ('columns', ColumnTransformer([
-        (
-            'normalize',
-            MinMaxScaler(feature_range=(0, 1)),
-            ColumnsLoc(var_cols).get_loc
-        ),
-        (
-            'month',
-            OrdinalEncoder(),
-            ColumnsLoc(date_cols).get_loc
-        )
-    ],
-        remainder='drop',
-    )),
-    ('reg', DummyRegressor())
+    ('test', TestTransformer(3)),
+    # ('test_debug', Debug()),
+    ('target_col', TestTargetColumnSelector('level')),
+    ('debug', Debug()),
+    ('reg', TransformedTargetRegressor(
+        transformer=Debug(),
+        regressor=DecisionTreeRegressor(max_depth=5))
+     )
+    # ('columns', ColumnTransformer([
+    #     (
+    #         'normalize',
+    #         MinMaxScaler(feature_range=(0, 1)),
+    #         ColumnsLoc(var_cols).get_loc
+    #     ),
+    #     (
+    #         'month',
+    #         OrdinalEncoder(),
+    #         ColumnsLoc(date_cols).get_loc
+    #     )
+    # ],
+    #     remainder='drop',
+    # )),
+
 ]
 
 grid_search_params = dict(
@@ -218,6 +236,31 @@ grid_search_params = dict(
     refit=False
 )
 
+# %%
+ConsolidatedDataFrame
+
+# %%
+transform_dataframe_pipeline = [
+    ('group', GroupByTransformer(['date', 'level', 'river', 'streamflow'])),
+    # ('debug1', DebugY()),
+    ('aggregate', AggregateTransformer({
+        'precipitation': 'sum',
+        'evaporation': 'sum',
+        'temperature': 'mean',
+        'surface_runoff': 'mean',
+    })),
+    # # ('debug2', DebugY()),
+    # ('reset_all_index', ResetIndexTransformer()),
+    # ('debug3', Debug()),
+    # ('pivot', PivotTransformer(index=["date", 'level', 'streamflow'], columns="river")),
+    # ('reset_index', ResetIndexTransformer(['level', 'streamflow']))
+]
+p = Pipeline(transform_dataframe_pipeline)
+
+# %%
+X = RawDataFrame.copy()
+y = RawDataFrame.copy()
+p.fit_transform(X, y)
 # %%
 # GridSearch para cada target
 reg_search = {
