@@ -1,5 +1,5 @@
 from google_drive_downloader import GoogleDriveDownloader as gdd
-from project_utils.constants import targets, targets_models
+from project_utils.constants import targets_models
 
 for target, _ in targets_models.items():
     gdd.download_file_from_google_drive(

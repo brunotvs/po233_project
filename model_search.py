@@ -85,7 +85,7 @@ ConsolidatedDataFrame = (
     reset_index(['level', 'streamflow'])
 )
 
-shift = 7
+shift = 5
 
 ConsolidatedDataFrame.insert(
     loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 1,
@@ -268,7 +268,7 @@ for target in targets:
         best_estimator=reg_search[target].estimator,
         estimators={},
     )
-    for roll in [1]:  # range(1, 22, 10):
+    for roll in range(1, 22, 10):
         WindowedDataFrame = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ConsolidatedDataFrame)
         regressor[target]['estimators'][roll] = reg_search[target].fit(WindowedDataFrame, WindowedDataFrame[target])
 

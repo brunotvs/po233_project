@@ -1,13 +1,13 @@
 # PO-233 - 01/2021
 
-Ainda estou testando a parte do setup.py, os dados do projeta são difíceis de baixar.
-
 A estrutura está como:
 paper
-arquivos relativos ao artigo - ainda sem estrutura
+    arquivos relativos ao artigo - ainda sem estrutura
 source
-build_data - pacote python para baixar os dados do projeta e construir um banco estruturado - ainda não funciona
-model - modelo de machine learning
+    Módulos e scripts personalizados
+
+model_load.py - Arquivo que carrega os modelos encontrados
+model_search.py - Arquivo para configurar parâmetros e salvar o modelo
 
 Passo a passo para configurar o ambiente, após clonar do github:
 
@@ -15,41 +15,5 @@ Em um terminal:
 
     python -m venv .env
 
-    se usando git bash:
-        source .env/Scripts/activate.bat
-
-    se usando windows cmd:
-        .env\Scripts\activate
-
-    python -m pip install -r requirements.txt
-
-    Setup.bat
-
-Tuto de git:
-Após fazer as edições e salvar os arquivos que está trabalhando:
-git add "caminho relativo dos arquivos que quer fazer download" ou git add -A para adicionar todos
-exemplo:
-git add requirements.txt setup.py
-git add paper/introdução.tex
-
-    Após adicionar os arquivos que gostaria de adicionar à versão:
-        git commit -m "Comentário das edições que fez"
-        exemplo:
-            git commit -m "Citei o artigo de fulano na introdução"
-            git commit -m "implementei um algorítmo novo no código"
-
-        essa parte que vai criar uma nova versão dos arquivos editados e salvar as versões anteriores como histórico
-
-    Após isso:
-        para baixar as atualizações que estão no servidor do github:
-            git pull
-        para fazer upload das versões que você está trabalhando:
-            git push
-Softwares para baixar:
-    Recomendados:
-        Visual studio code [https://code.visualstudio.com/] - alternativa seria qualquer editor, como vim, sublime etc.
-        Tex Live [https://www.tug.org/texlive/] - alternativa seria mik tex, mas nunca usei e não sei se funciona bem
-    "Obrigatórios":
-        Inkscape [https://inkscape.org/pt-br/] - necessário para utilizar svg no documento (precisa adicionar à variável path do sistema)
-        git-scm [https://git-scm.com/] - utilizar o git
-        R e python, para códigos
+    .env/Scripts/python.exe -m pip install -r requirements.txt
+    .env/Scripts/python.exe source/setup.py
