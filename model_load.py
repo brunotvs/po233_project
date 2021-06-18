@@ -1,4 +1,6 @@
 # %%
+import os.path
+
 import eli5
 import joblib
 import numpy
@@ -23,11 +25,13 @@ from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
 from sqlalchemy.sql.expression import true
 
-from custom_transfomers.debug_transformer import Debug
-from custom_transfomers.time_window_transformer import TimeWindowTransformer
-from data_base.connection import session
-from data_base.models import models
-from project_utils.data_manipulation import generate_aggregation
+from source.custom_transfomers.debug_transformer import Debug
+from source.custom_transfomers.time_window_transformer import \
+    TimeWindowTransformer
+from source.data_base.connection import session
+from source.data_base.models import models
+from source.project_utils.constants import targets
+from source.project_utils.data_manipulation import generate_aggregation
 
 pandas.set_option('display.max_columns', 51)
 
@@ -97,26 +101,9 @@ ConsolidatedDataFrame.insert(0, 'month', months)
 
 
 # %%
-targets = [
-    'level',
-    # 'streamflow',
-    # 'level_variation',
-    # 'streamflow_variation'
-]
-
-targets_models = {
-    'level': '1ruUuRqO5NKXlh-IXQ6pGPH02CrQWaMWP'
-}
-
-# %%
 # Carregar o modelo
 regression_models = {}
 for target in targets:
-    gdd.download_file_from_google_drive(
-        file_id=targets_models[target],
-        dest_path=f'model/{target}.pkl',
-        overwrite=True,
-        showsize=True)
     regression_models[target] = joblib.load(f'model/{target}.pkl')
 
 # %%

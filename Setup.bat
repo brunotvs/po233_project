@@ -1,1 +1,1 @@
-.env\Scripts\python.exe Setup.py
+.env\Scripts\python.exe source\setup.py

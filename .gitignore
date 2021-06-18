@@ -135,4 +135,4 @@ dmypy.json
 __pipeline_cache_*
 
 # serialized models
-source/model
+model/

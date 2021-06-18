@@ -2,6 +2,7 @@ from typing import List
 
 import pandas
 from pandas import DataFrame
+from pandas.core.indexes.multi import MultiIndex
 
 
 def generate_aggregation(fun, *args) -> dict:
@@ -47,3 +48,25 @@ if __name__ == '__main__':
     agg = generate_aggregation('sum', 'ab', range(2))
 
     print(agg)
+
+
+class ColumnsLoc():
+
+    def __init__(self, *args) -> None:
+        self.args = args
+
+    def get_loc(self, df: DataFrame):
+        columns = df.columns
+
+        idx = []
+        for col in self.args:
+            try:
+                idx += list(columns.get_locs([col]))
+            except AttributeError:
+                idx += [columns.get_loc(col)]
+
+        return idx
+
+
+# def get_loc():
+#     ColumnsLoc().get_loc()
