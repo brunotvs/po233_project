@@ -134,7 +134,7 @@ previous_cols = ['previous_level', 'previous_streamflow']
 previous_cols_loc = [ConsolidatedDataFrame.columns.get_loc((col, '')) for col in previous_cols]
 
 # %%
-cv = KFold(n_splits=3, random_state=seed, shuffle=True)
+cv = KFold(n_splits=10, random_state=seed, shuffle=True)
 
 
 pipeline_steps = [
