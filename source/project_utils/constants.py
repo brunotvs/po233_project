@@ -6,6 +6,7 @@ targets = [
 ]
 
 targets_models = {
-    'streamflow-s_d07': '1ogxLbQdyn4gQu5MXqReHKQC4QuP3SjOz',
-    'streamflow-s_d05': '1PH2NuRLeTZKGGk5GXfQb0eN3npXa90r5',
+    'streamflow-s_d01': '1cmib3ogVDYTWISmUy3BL77HO_3H2PxLT',
+    'streamflow-s_d015': '1nLVWmqW8Uayrrq5xEX3flwH-bIPaaBJ9',
+    'streamflow-s_d030': '1gKCdINSDXNN9jDMidsjB7Iw4c2JtRNto',
 }

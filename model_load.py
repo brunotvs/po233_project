@@ -106,11 +106,5 @@ regression_models = {}
 for target, _ in targets_models.items():
     regression_models[target] = joblib.load(f'model/{target}.pkl')
 
-# %%
-df = pandas.DataFrame()
-for target, _ in targets_models.items():
-    df[target.split('_')[0]] = ConsolidatedDataFrame[target.split('-')[0]]
-    df[f'p_{target}'] = regression_models[target]['best_estimator'].predict(ConsolidatedDataFrame)
-df
 
 # %%

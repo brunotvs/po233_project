@@ -46,13 +46,14 @@ pandas.set_option('display.max_columns', 51)
 # To add a new cell, type '# %%'
 # To add a new markdown cell, type '# %% [markdown]'
 
+# # %%
+# get_ipython().run_line_magic('load_ext', 'autoreload')
+# get_ipython().run_line_magic('autoreload', '2')
+
+
 # %%
 # Construção do dataframe utilizando buscas no banco de dados sql
-get_ipython().run_line_magic('load_ext', 'autoreload')
-get_ipython().run_line_magic('autoreload', '2')
-
-
-# %%
+print('SQL query...')
 query = select(
     models.Variables.date,
     models.Variables.precipitation.label('precipitation'),
@@ -157,9 +158,9 @@ pipeline_steps = [
 grid_search_params = dict(
     param_grid=[
         # Para testes rápidos
-        # {
-        #     'reg': [DecisionTreeRegressor(max_depth=5)]
-        # },
+        {
+            'reg': [DecisionTreeRegressor(max_depth=5)]
+        },
         {
             'reg': [
                 TransformedTargetRegressor(
@@ -188,6 +189,23 @@ grid_search_params = dict(
                 'passthrough'
             ],
         },
+        {
+            'reg': [
+                StackingRegressor(
+                    estimators=[
+                        ('RandomForest', RandomForestRegressor()),
+                        ('SVR', TransformedTargetRegressor(
+                            transformer=MinMaxScaler(feature_range=(0, 1)),
+                            regressor=SVR()
+                        ))
+                    ],
+                    final_estimator=Ridge()
+                )
+            ],
+            'reg__RandomForest__random_state': [seed],
+            'reg__RandomForest__n_estimators': [10, 100, 250],
+            'reg__SVR__regressor__C': range(15, 31, 5),
+        },
         # {
         #     'reg': [
         #         StackingRegressor(
@@ -209,23 +227,6 @@ grid_search_params = dict(
         #     'reg__SVR__regressor__C': range(15, 31, 5),
         #     'reg__final_estimator__regressor__C': range(7, 16, 5),
         # },
-        {
-            'reg': [
-                StackingRegressor(
-                    estimators=[
-                        ('RandomForest', RandomForestRegressor()),
-                        ('SVR', TransformedTargetRegressor(
-                            transformer=MinMaxScaler(feature_range=(0, 1)),
-                            regressor=SVR()
-                        ))
-                    ],
-                    final_estimator=Ridge()
-                )
-            ],
-            'reg__RandomForest__random_state': [seed],
-            'reg__RandomForest__n_estimators': [10, 100, 250],
-            'reg__SVR__regressor__C': range(15, 31, 5),
-        },
     ],
     scoring=[
         'explained_variance',
@@ -233,16 +234,17 @@ grid_search_params = dict(
         'neg_mean_absolute_error',
         'neg_mean_squared_error',
         'neg_root_mean_squared_error',
-        'neg_mean_squared_log_error',
+        # 'neg_mean_squared_log_error',
         'neg_median_absolute_error',
         'r2',
-        'neg_mean_poisson_deviance',
-        'neg_mean_gamma_deviance',
+        # 'neg_mean_poisson_deviance',
+        # 'neg_mean_gamma_deviance',
         'neg_mean_absolute_percentage_error'
     ],
     cv=cv,
     n_jobs=-1,
     verbose=10,
+    error_score="raise",
     refit='r2'
 )
 
@@ -258,8 +260,9 @@ agg.update(temperature_agg)
 agg.update(runoff_agg)
 
 # %%
+print('GridSearch...')
 shift_regressors = {}
-for shift in range(1, 6):
+for shift in [1, 15, 30]:
     ShiftedDataFrame = ConsolidatedDataFrame.copy()
 
     ShiftedDataFrame.insert(
@@ -271,23 +274,24 @@ for shift in range(1, 6):
     ShiftedDataFrame.insert(
         loc=ShiftedDataFrame.columns.get_loc(('streamflow', '')) + 1,
         column='shifted_streamflow',
-        value=pandas.DataFrame(ConsolidatedDataFrame['streamflow']).shift(shift).values
+        value=pandas.DataFrame(ShiftedDataFrame['streamflow']).shift(shift).values
     )
 
     ShiftedDataFrame = ShiftedDataFrame.dropna()
 
+    ShiftedDataFrame['streamflow'] = ShiftedDataFrame['streamflow'].clip(0)
+
     shift_regressors[shift] = {}
     target_regressor = shift_regressors[shift]
-    for target in targets:
+    for target in ['streamflow']:  # targets:
         target_regressor[target] = dict(
             best_score=-9999,
             estimators={},
         )
-        for roll in range(1, 32, 10):
+        for roll in [1, 15, 30]:
             search = GridSearchCV(Pipeline(steps=pipeline_steps), **grid_search_params)
-            WindowedDataFrame = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ConsolidatedDataFrame)
+            WindowedDataFrame = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ShiftedDataFrame)
             target_regressor[target]['estimators'][roll] = search.fit(WindowedDataFrame, WindowedDataFrame[target])
-            print(roll, search.best_score_)
             if search.best_score_ > target_regressor[target]['best_score']:
                 target_regressor[target]['best_score'] = search.best_score_
                 target_regressor[target]['best_params'] = search.best_params_
@@ -297,64 +301,4 @@ for shift in range(1, 6):
 
         joblib.dump(target_regressor[target], f'model/{target}-s_d0{shift}.pkl')
 
-
 # %%
-# Fit nos melhores estimadores
-# for target in targets:
-#     WindowedDataFrame = TimeWindowTransformer(
-#         columns=var_cols,
-#         rolling=regressor[target]['best_windowing'],
-#         aggregate=agg,
-#         dropna=True).fit_transform(ConsolidatedDataFrame)
-
-#     regressor[target]['windowed_data'] = WindowedDataFrame
-#     regressor[target]['best_estimator'].fit(
-#         regressor[target]['windowed_data'],
-#         regressor[target]['windowed_data'][target])
-# %%
-# Calcular scores do melhor estimador
-for target in targets:
-    target_regressor[target]['cv_score'] = cross_validate(
-        target_regressor[target]['best_estimator'],
-        target_regressor[target]['windowed_data'],
-        target_regressor[target]['windowed_data'][target],
-        cv=10,
-        scoring=['neg_root_mean_squared_error', 'r2'],
-        n_jobs=-1,
-        return_train_score=True)
-
-# %%
-# Printar scores encontrados
-for target in targets:
-    for key, val in target_regressor[target]['cv_score'].items():
-        print(f'{target} -> {key}: {val.mean()} ± {val.std()}')
-
-    print('\n')
-
-
-# %%
-# Testar importância das features
-for target in targets:
-    target_regressor[target]['permutation_importance'] = permutation_importance(
-        target_regressor[target]['best_estimator'],
-        target_regressor[target]['windowed_data'],
-        target_regressor[target]['windowed_data'][target],
-        n_repeats=10,
-        random_state=0,
-        n_jobs=-1)
-
-# %%
-# Printar importância das features
-for target in targets:
-    print(pandas.DataFrame(target_regressor[target]['permutation_importance'].importances_mean))
-
-# %%
-df = pandas.DataFrame()
-
-for target in targets:
-    df[target] = target_regressor[target]['windowed_data'][target]
-    df[f'p_{target}'] = target_regressor[target]['best_estimator'].predict(WindowedDataFrame)
-df
-
-# %%
-# Salvar os modelos
