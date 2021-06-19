@@ -13,6 +13,7 @@ from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor, StackingRegressor
 from sklearn.impute import SimpleImputer
+from sklearn.inspection import permutation_importance
 from sklearn.linear_model import Ridge
 from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
                              precision_score, recall_score)
@@ -106,5 +107,28 @@ regression_models = {}
 for target, _ in targets_models.items():
     regression_models[target] = joblib.load(f'model/{target}.pkl')
 
+# # %%
+# # Testar importância das features
+# for target in targets:
+#     regression_models[target]['permutation_importance'] = permutation_importance(
+#         target_regressor[target]['best_estimator'],
+#         target_regressor[target]['windowed_data'],
+#         target_regressor[target]['windowed_data'][target],
+#         n_repeats=10,
+#         random_state=0,
+#         n_jobs=-1)
+
+# # %%
+# # Printar importância das features
+# for target in targets:
+#     print(pandas.DataFrame(target_regressor[target]['permutation_importance'].importances_mean))
+
+# %%
+for key, item in regression_models.items():
+    for i in [1, 15, 30]:
+        mean, std = pandas.DataFrame(item['estimators'][i].cv_results_).sort_values(
+            'rank_test_r2')[['mean_test_r2', 'std_test_r2']][:1].values[0]
+        print(f'------{key}-------')
+        print(f'{i} -', f'{mean:.05f} +- {std:.05f}')
 
 # %%

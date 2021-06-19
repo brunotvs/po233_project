@@ -243,7 +243,7 @@ grid_search_params = dict(
     ],
     cv=cv,
     n_jobs=-1,
-    verbose=10,
+    verbose=2,
     error_score="raise",
     refit='r2'
 )
@@ -262,7 +262,7 @@ agg.update(runoff_agg)
 # %%
 print('GridSearch...')
 shift_regressors = {}
-for shift in [1, 15, 30]:
+for shift in [1, 8, 15, 22, 29, 30]:
     ShiftedDataFrame = ConsolidatedDataFrame.copy()
 
     ShiftedDataFrame.insert(
@@ -299,6 +299,6 @@ for shift in [1, 15, 30]:
                 target_regressor[target]['best_windowing'] = roll
                 target_regressor[target]['windowed_data'] = WindowedDataFrame
 
-        joblib.dump(target_regressor[target], f'model/{target}-s_d0{shift}.pkl')
+        joblib.dump(target_regressor[target], f'model/{target}-s_d{shift:02d}.pkl')
 
 # %%
