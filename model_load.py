@@ -124,11 +124,34 @@ for target, _ in targets_models.items():
 #     print(pandas.DataFrame(target_regressor[target]['permutation_importance'].importances_mean))
 
 # %%
-for key, item in regression_models.items():
-    for i in [1, 15, 30]:
+for i in [1, 15, 30]:
+    for key, item in regression_models.items():
+
         mean, std = pandas.DataFrame(item['estimators'][i].cv_results_).sort_values(
             'rank_test_r2')[['mean_test_r2', 'std_test_r2']][:1].values[0]
         print(f'------{key}-------')
         print(f'{i} -', f'{mean:.05f} +- {std:.05f}')
 
 # %%
+# Testar importância das features
+ImportancesDataFrame = pandas.DataFrame()
+for i in [1, 15, 30]:
+    for target in targets_models:
+        importances = permutation_importance(
+            regression_models[target]['best_estimator'],
+            regression_models[target]['windowed_data'],
+            regression_models[target]['windowed_data'][target.split('-')[0]],
+            n_repeats=10,
+            random_state=0,
+            n_jobs=-1)
+        ImportancesDataFrame[f'{target}_{i}-mean'] = importances.importances_mean
+        ImportancesDataFrame[f'{target}_{i}-std'] = importances.importances_std
+# %%
+# Printar importância das features
+
+ImportancesDataFrame.filter(like='mean', axis='columns')
+
+# %%
+ImportancesDataFrame.set_index(
+    regression_models['streamflow-s_d01']['windowed_data'].columns
+).filter(like='mean', axis='columns').iloc[:9].transpose()
