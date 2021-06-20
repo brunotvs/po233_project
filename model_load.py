@@ -36,93 +36,11 @@ from source.project_utils.data_manipulation import generate_aggregation
 
 pandas.set_option('display.max_columns', 51)
 
-
-# %%
-query = select(
-    models.Variables.date,
-    models.Variables.precipitation.label('precipitation'),
-    models.Variables.temperature.label('temperature'),
-    models.Variables.evaporation.label('evaporation'),
-    models.Variables.surface_runoff.label('surface_runoff'),
-    models.Coordinate.river_id.label('river'),
-    models.Reservoir.level,
-    models.Reservoir.streamflow
-).\
-    join(models.Variables.coordinate).\
-    join(models.Reservoir, models.Variables.date == models.Reservoir.date)
-
-RawDataFrame = pandas.read_sql(query, session.bind)
-
-
-# %%
-# DataFrame consolidado porém com os atributos para cada rio posicionados em uma diferente coluna
-ConsolidatedDataFrame = (
-    RawDataFrame.
-    groupby(['date', 'level', 'river', 'streamflow']).
-    agg({
-        'precipitation': 'sum',
-        'evaporation': 'sum',
-        'temperature': 'mean',
-        'surface_runoff': 'mean',
-    }).
-    reset_index().
-    pivot(index=["date", 'level', 'streamflow'], columns="river").
-    reset_index(['level', 'streamflow'])
-)
-
-
-ConsolidatedDataFrame.insert(
-    loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 1,
-    column='previous_level',
-    value=pandas.DataFrame(ConsolidatedDataFrame['level']).shift(1).values
-)
-
-ConsolidatedDataFrame.insert(
-    loc=ConsolidatedDataFrame.columns.get_loc(('streamflow', '')) + 1,
-    column='previous_streamflow',
-    value=pandas.DataFrame(ConsolidatedDataFrame['streamflow']).shift(1).values
-)
-
-ConsolidatedDataFrame = ConsolidatedDataFrame.dropna()
-
-ConsolidatedDataFrame.insert(
-    loc=ConsolidatedDataFrame.columns.get_loc(('level', '')) + 2,
-    column='level_variation',
-    value=ConsolidatedDataFrame.level - ConsolidatedDataFrame.previous_level
-)
-
-ConsolidatedDataFrame.insert(
-    loc=ConsolidatedDataFrame.columns.get_loc(('streamflow', '')) + 2,
-    column='streamflow_variation',
-    value=ConsolidatedDataFrame.streamflow - ConsolidatedDataFrame.previous_streamflow
-)
-
-months = [date.month for date in ConsolidatedDataFrame.index.get_level_values('date')]
-ConsolidatedDataFrame.insert(0, 'month', months)
-
-
 # %%
 # Carregar o modelo
 regression_models = {}
 for target, _ in targets_models.items():
     regression_models[target] = joblib.load(f'model/{target}.pkl')
-
-# # %%
-# # Testar importância das features
-# for target in targets:
-#     regression_models[target]['permutation_importance'] = permutation_importance(
-#         target_regressor[target]['best_estimator'],
-#         target_regressor[target]['windowed_data'],
-#         target_regressor[target]['windowed_data'][target],
-#         n_repeats=10,
-#         random_state=0,
-#         n_jobs=-1)
-
-# # %%
-# # Printar importância das features
-# for target in targets:
-#     print(pandas.DataFrame(target_regressor[target]['permutation_importance'].importances_mean))
-
 # %%
 for i in [1, 15, 30]:
     for key, item in regression_models.items():
