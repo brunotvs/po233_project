@@ -1,75 +1,355 @@
 # %%
-import os.path
-
-import eli5
-import joblib
-import numpy
-import pandas
-from eli5.sklearn import PermutationImportance
-from google_drive_downloader import GoogleDriveDownloader as gdd
-from IPython import get_ipython
-from mlxtend.feature_selection import ColumnSelector
-from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
-from sklearn.dummy import DummyRegressor
-from sklearn.ensemble import RandomForestRegressor, StackingRegressor
-from sklearn.impute import SimpleImputer
-from sklearn.inspection import permutation_importance
-from sklearn.linear_model import Ridge
-from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
-                             precision_score, recall_score)
-from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
-                                     cross_validate, train_test_split)
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.svm import SVR
-from sklearn.tree import DecisionTreeRegressor
-from sqlalchemy import select
-from sqlalchemy.sql.expression import true
-
-from source.custom_transfomers.debug_transformer import Debug
+from source.project_utils.data_manipulation import generate_aggregation
+from source.project_utils.constants import targets, targets_models
+from source.data_base.models import models
+from source.data_base.connection import session
 from source.custom_transfomers.time_window_transformer import \
     TimeWindowTransformer
-from source.data_base.connection import session
-from source.data_base.models import models
-from source.project_utils.constants import targets, targets_models
-from source.project_utils.data_manipulation import generate_aggregation
+from source.custom_transfomers.debug_transformer import Debug
+from sqlalchemy.sql.expression import label, true
+from sqlalchemy import select
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
+                                     cross_validate, train_test_split)
+from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
+                             precision_score, recall_score)
+from sklearn.linear_model import Ridge
+from sklearn.inspection import permutation_importance
+from sklearn.impute import SimpleImputer
+from sklearn.ensemble import RandomForestRegressor, StackingRegressor
+from sklearn.dummy import DummyRegressor
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
+from mlxtend.feature_selection import ColumnSelector
+from IPython import get_ipython
+from google_drive_downloader import GoogleDriveDownloader as gdd
+from eli5.sklearn import PermutationImportance
+import tikzplotlib
+import pandas
+import numpy
+import matplotlib
+import matplotlib.pyplot as plt
+import joblib
+import eli5
+from matplotlib.transforms import Affine2D
+from matplotlib import transforms
 
 pandas.set_option('display.max_columns', 51)
+
+plt.style.use('default')
+
+idx = pandas.IndexSlice
+
+# matplotlib.use("pgf")
+# matplotlib.rcParams.update({
+#     "pgf.texsystem": "pdflatex",
+#     'font.family': 'serif',
+#     'text.usetex': True,
+#     'pgf.rcfonts': False,
+# })
+
+# # %%
+# query = select(
+#     models.Variables.date,
+#     models.Variables.precipitation.label('precipitation'),
+#     models.Variables.temperature.label('temperature'),
+#     models.Variables.evaporation.label('evaporation'),
+#     models.Variables.surface_runoff.label('surface_runoff'),
+#     models.Coordinate.river_id.label('river'),
+#     models.Reservoir.level,
+#     models.Reservoir.streamflow
+# ).\
+#     join(models.Variables.coordinate).\
+#     join(models.Reservoir, models.Variables.date == models.Reservoir.date).\
+#     order_by(models.Variables.date)
+
+# RawDataFrame = pandas.read_sql(query, session.bind)
 
 # %%
 # Carregar o modelo
 regression_models = {}
-for target, _ in targets_models.items():
-    regression_models[target] = joblib.load(f'model/{target}.pkl')
-# %%
-for i in [1, 15, 30]:
-    for key, item in regression_models.items():
-
-        mean, std = pandas.DataFrame(item['estimators'][i].cv_results_).sort_values(
-            'rank_test_r2')[['mean_test_r2', 'std_test_r2']][:1].values[0]
-        print(f'------{key}-------')
-        print(f'{i} -', f'{mean:.05f} +- {std:.05f}')
+targets_models = range(1, 30, 7)
+for target in targets_models:
+    regression_models[target] = joblib.load(f'model/streamflow-s_d{target:02d}.pkl')
 
 # %%
-# Testar importância das features
-ImportancesDataFrame = pandas.DataFrame()
-for i in [1, 15, 30]:
-    for target in targets_models:
-        importances = permutation_importance(
-            regression_models[target]['best_estimator'],
-            regression_models[target]['windowed_data'],
-            regression_models[target]['windowed_data'][target.split('-')[0]],
-            n_repeats=10,
-            random_state=0,
-            n_jobs=-1)
-        ImportancesDataFrame[f'{target}_{i}-mean'] = importances.importances_mean
-        ImportancesDataFrame[f'{target}_{i}-std'] = importances.importances_std
-# %%
-# Printar importância das features
+ImportancesDataFrame = joblib.load('model/importances.pkl')
 
-ImportancesDataFrame.filter(like='mean', axis='columns')
+#
+# %%
+
+
+def cm_to_inches(cm):
+    return cm / 2.54
+
+
+columns_ = [
+    (('shifted_level', ''), 'Shifted Level', 'b'),
+    (('evaporation', 1), 'Evaporation River 1', 'g'),
+    (('evaporation', 6), 'evaporation River 6', 'r'),
+    (('evaporation', 7), 'evaporation River 7', 'c'),
+    (('evaporation', 10), 'evaporation River 10', 'k'),
+    (('month', ''), 'month', 'y'),
+    (('precipitation', 4), 'precipitation River 4', 'm'),
+    (('shifted_streamflow', ''), 'Shifted Streamflow', 'brown'),
+    (('surface_runoff', 10), 'Surface Runoff River 10', 'indianred'),
+    (('surface_runoff', 11), 'Surface Runoff River 11', 'darkseagreen'),
+]
+
+labels = []
+
+
+def plot_save_importance(
+        windowing=1,
+        lim=None,
+        legend_loc=0,
+        save_folder: str = '.',
+        x_label=None,
+        y_label=None,
+        width=6.4,
+        height=4.8):
+    if not save_folder.endswith('/'):
+        save_folder += '/'
+    aaaa = ImportancesDataFrame.copy().transpose()
+    aaaa[('mean', windowing, 'mean')] = [row.mean()
+                                         for row in ImportancesDataFrame.transpose().loc[idx[:, :, :], idx[:, windowing, 'mean']].values]
+    aaaa = aaaa.sort_values(('mean', windowing, 'mean'), ascending=False)[:5]
+    aaaa = aaaa.drop(columns=('mean', windowing, 'mean')).transpose()
+    for column in columns_:  # aaaa.loc[idx[:, windowing, 'mean']].columns:
+
+        if column[0] in aaaa.loc[idx[:, windowing, 'mean']].columns:
+            plt.plot(
+                aaaa.loc[idx[:, windowing, 'mean']][column[0]].index,
+                aaaa.loc[idx[:, windowing, 'mean']][column[0]],
+                label=column[1],
+                color=column[2],
+
+            )
+            # ax = fig.add_subplot(111)
+            # l = ax.plot(range(10), pylab.randn(10), range(10), pylab.randn(10))
+            # labels.append((l, column[1]))
+    plt.ylim(lim)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
+    plt.xticks(ImportancesDataFrame.loc[idx[:, windowing, 'mean']][column[0]].index)
+    if legend_loc is not None:
+        plt.legend(loc=None, bbox_to_anchor=(1.05, 1))
+    plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_folder + f'Importance_w{windowing:02d}.svg')
+
 
 # %%
-ImportancesDataFrame.set_index(
-    regression_models['streamflow-s_d01']['windowed_data'].columns
-).filter(like='mean', axis='columns').iloc[:9].transpose()
+width = 15
+height = 5
+
+# %%
+plot_save_importance(windowing=1,
+                     legend_loc=1,
+                     x_label='Shift (days)',
+                     y_label='Importance',
+                     width=width,
+                     height=height,
+                     save_folder='paper/graphs')
+
+# %%
+plot_save_importance(windowing=15,
+                     legend_loc=1,
+                     x_label='Shift (days)',
+                     y_label='Importance',
+                     width=width,
+                     height=height,
+                     save_folder='paper/graphs')
+
+# %%
+plot_save_importance(windowing=30,
+                     legend_loc=1,
+                     x_label='Shift (days)',
+                     y_label='Importance',
+                     width=width,
+                     height=height,
+                     save_folder='paper/graphs')
+
+# %%
+indexes = []
+for windowing in [1, 15, 30]:
+    for lagging in range(1, 30, 7):
+        indexes.append((windowing, lagging))
+
+multiIndex = pandas.MultiIndex.from_tuples(indexes, names=['windowing', 'lagging'])
+
+# %%
+columns = []
+scores = {
+    'MAE': {'mean': 'mean_test_neg_mean_absolute_error', 'std': 'std_test_neg_mean_absolute_error'},
+    'R2': {'mean': 'mean_test_r2', 'std': 'std_test_r2'},
+}
+
+set_estimators = {
+    reg for reg in regression_models[target]['estimators'][1].cv_results_['param_reg']}
+estimators = {}
+for x in set_estimators:
+    try:
+        name = x.regressor.__class__.__name__
+    except AttributeError:
+        name = x.__class__.__name__
+
+    estimators[name] = x
+for regressor_name, regressor in estimators.items():
+    for score_name, score in scores.items():
+        for name, column_name in score.items():
+            columns.append((regressor_name, score_name, name))
+
+multiColumns = pandas.MultiIndex.from_tuples(columns, names=['regressor', 'score', 'value'])
+
+# %%
+data = []
+for index in multiIndex:
+    row = []
+    for column in multiColumns:
+        target = index[1]
+        set_estimators = {
+            reg for reg in regression_models[target]['estimators'][1].cv_results_['param_reg']}
+        estimators = {}
+        for x in set_estimators:
+            try:
+                name = x.regressor.__class__.__name__
+            except AttributeError:
+                name = x.__class__.__name__
+
+            estimators[name] = x
+
+        results_df = (
+            pandas.DataFrame(
+                regression_models[target]['estimators'][index[0]].cv_results_
+            ).
+            sort_values(scores['R2']['mean'], ascending=False)
+        )
+
+        target_results = (
+            results_df.loc[
+                results_df['param_reg'] == estimators[column[0]]
+            ][:1]
+        )
+
+        row.append(target_results[scores[column[1]][column[2]]].values[0])
+
+    data.append(row)
+
+aaaa = pandas.DataFrame(numpy.array(data), multiIndex, multiColumns)
+
+
+# %%
+# função para plotar
+
+
+def plot_save_score(
+        windowing=1,
+        scorer='R2',
+        lim=None,
+        legend_loc=0,
+        save_folder: str = '.',
+        x_label=None,
+        y_label=None,
+        width=6.4,
+        height=4.8):
+    if not save_folder.endswith('/'):
+        save_folder += '/'
+
+    _, ax = plt.subplots()
+    n_plots = len(aaaa.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'))
+    k = -0.2 * n_plots / 2
+    for reg in aaaa.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'):
+        trans1 = Affine2D().translate(k, 0.0) + ax.transData
+        plt.errorbar(
+            aaaa.loc[windowing][(reg, scorer, 'mean')].index,
+            aaaa.loc[windowing][(reg, scorer, 'mean')],
+            aaaa.loc[windowing][(reg, scorer, 'std')],
+            label=reg,
+            transform=trans1
+        )
+        k += 0.2
+    plt.ylim(lim)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
+    plt.xticks(aaaa.loc[windowing][(reg, scorer, 'mean')].index)
+    if legend_loc is not None:
+        plt.legend(loc=None, bbox_to_anchor=(1.05, 1))
+    plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_folder + f'{scorer}_w{windowing:02d}.svg')
+
+
+# %%
+width = 7.3
+height = 7
+# %%
+plot_save_score(windowing=1,
+                scorer='R2',
+                lim=(0.2, 1),
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='$R^2$ score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=15,
+                scorer='R2',
+                lim=(0.2, 1),
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='$R^2$ score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=30,
+                scorer='R2',
+                lim=(0.2, 1),
+                legend_loc=3,
+                x_label='Shift (days)',
+                y_label='$R^2$ score',
+                width=width + 6.5,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=1,
+                scorer='MAE',
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='MAE score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=15,
+                scorer='MAE',
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='MAE score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=30,
+                scorer='MAE',
+                legend_loc=3,
+                x_label='Shift (days)',
+                y_label='MAE score',
+                width=width + 6.5,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+
+# %%
