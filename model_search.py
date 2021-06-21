@@ -262,7 +262,7 @@ agg.update(runoff_agg)
 # %%
 print('GridSearch...')
 shift_regressors = {}
-for shift in [1, 8, 15, 22, 29, 30]:
+for shift in [1, 8, 15, 22, 29]:
     ShiftedDataFrame = ConsolidatedDataFrame.copy()
 
     ShiftedDataFrame.insert(
@@ -302,3 +302,37 @@ for shift in [1, 8, 15, 22, 29, 30]:
         joblib.dump(target_regressor[target], f'model/{target}-s_d{shift:02d}.pkl')
 
 # %%
+regression_models = shift_regressors
+for i in [1, 15, 30]:
+    for score_name, item in regression_models.items():
+
+        mean, std = pandas.DataFrame(item['estimators'][i].cv_results_).sort_values(
+            'rank_test_r2')[['mean_test_r2', 'std_test_r2']][:1].values[0]
+        print(f'------{score_name}-------')
+        print(f'{i} -', f'{mean:.05f} +- {std:.05f}')
+
+# %%
+# Testar importância das features
+ImportancesDataFrame = pandas.DataFrame()
+names = ['target', 'windowing', 'fun']
+columns = regression_models['streamflow-s_d01']['windowed_data'].columns
+for i in [1, 15, 30]:
+    for target in [1, 8, 15, 22, 29]:
+        lagging = int(target[-2:])
+        importances = permutation_importance(
+            regression_models[target]['estimators'][i].best_estimator_,
+            regression_models[target]['windowed_data'],
+            regression_models[target]['windowed_data'][target.split('-')[0]],
+            n_repeats=10,
+            random_state=0,
+            n_jobs=-1)
+
+        mean_index = pandas.MultiIndex.from_tuples([(lagging, i, 'mean')], names=names)
+        std_index = pandas.MultiIndex.from_tuples([(lagging, i, 'std')], names=names)
+        mean_df = pandas.DataFrame(importances.importances_mean, columns=mean_index, index=columns).transpose()
+        std_df = pandas.DataFrame(importances.importances_std, columns=std_index, index=columns).transpose()
+        ImportancesDataFrame = ImportancesDataFrame.append(mean_df)
+        ImportancesDataFrame = ImportancesDataFrame.append(std_df)
+
+# %%
+joblib.dump(ImportancesDataFrame, 'model/importances.pkl')
