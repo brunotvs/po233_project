@@ -69,10 +69,14 @@ idx = pandas.IndexSlice
 
 # %%
 # Carregar o modelo
+debug = True
+models_path = 'model/'
+if debug:
+    models_path += 'debug/'
 regression_models = {}
 targets_models = range(1, 30, 7)
 for target in targets_models:
-    regression_models[target] = joblib.load(f'model/streamflow-s_d{target:02d}.pkl')
+    regression_models[target] = joblib.load(models_path + f'streamflow-s_d{target:02d}.pkl')
 
 # %%
 ImportancesDataFrame = joblib.load('model/importances.pkl')
@@ -88,11 +92,11 @@ def cm_to_inches(cm):
 columns_ = [
     (('shifted_level', ''), 'Shifted Level', 'b'),
     (('evaporation', 1), 'Evaporation River 1', 'g'),
-    (('evaporation', 6), 'evaporation River 6', 'r'),
-    (('evaporation', 7), 'evaporation River 7', 'c'),
-    (('evaporation', 10), 'evaporation River 10', 'k'),
-    (('month', ''), 'month', 'y'),
-    (('precipitation', 4), 'precipitation River 4', 'm'),
+    (('evaporation', 6), 'Evaporation River 6', 'r'),
+    (('evaporation', 7), 'Evaporation River 7', 'c'),
+    (('evaporation', 10), 'Evaporation River 10', 'k'),
+    (('month', ''), 'Month', 'y'),
+    (('precipitation', 4), 'Precipitation River 4', 'm'),
     (('shifted_streamflow', ''), 'Shifted Streamflow', 'brown'),
     (('surface_runoff', 10), 'Surface Runoff River 10', 'indianred'),
     (('surface_runoff', 11), 'Surface Runoff River 11', 'darkseagreen'),
@@ -117,19 +121,15 @@ def plot_save_importance(
                                          for row in ImportancesDataFrame.transpose().loc[idx[:, :, :], idx[:, windowing, 'mean']].values]
     aaaa = aaaa.sort_values(('mean', windowing, 'mean'), ascending=False)[:5]
     aaaa = aaaa.drop(columns=('mean', windowing, 'mean')).transpose()
-    for column in columns_:  # aaaa.loc[idx[:, windowing, 'mean']].columns:
+    for column in aaaa.loc[idx[:, windowing, 'mean']].columns:
 
-        if column[0] in aaaa.loc[idx[:, windowing, 'mean']].columns:
-            plt.plot(
-                aaaa.loc[idx[:, windowing, 'mean']][column[0]].index,
-                aaaa.loc[idx[:, windowing, 'mean']][column[0]],
-                label=column[1],
-                color=column[2],
+        plt.plot(
+            aaaa.loc[idx[:, windowing, 'mean']][column].index,
+            aaaa.loc[idx[:, windowing, 'mean']][column],
+            label=column,
+            # color=column[2],
+        )
 
-            )
-            # ax = fig.add_subplot(111)
-            # l = ax.plot(range(10), pylab.randn(10), range(10), pylab.randn(10))
-            # labels.append((l, column[1]))
     plt.ylim(lim)
     plt.ylabel(y_label)
     plt.xlabel(x_label)
@@ -184,8 +184,16 @@ multiIndex = pandas.MultiIndex.from_tuples(indexes, names=['windowing', 'lagging
 # %%
 columns = []
 scores = {
-    'MAE': {'mean': 'mean_test_neg_mean_absolute_error', 'std': 'std_test_neg_mean_absolute_error'},
-    'R2': {'mean': 'mean_test_r2', 'std': 'std_test_r2'},
+    'MAE': {
+        'mean': 'mean_test_neg_mean_absolute_error',
+        'std': 'std_test_neg_mean_absolute_error',
+        'rank': 'rank_test_neg_mean_absolute_error'
+    },
+    'R2': {
+        'mean': 'mean_test_r2',
+        'std': 'std_test_r2',
+        'rank': 'rank_test_r2'
+    },
 }
 
 set_estimators = {
@@ -206,40 +214,27 @@ for regressor_name, regressor in estimators.items():
 multiColumns = pandas.MultiIndex.from_tuples(columns, names=['regressor', 'score', 'value'])
 
 # %%
-data = []
-for index in multiIndex:
-    row = []
-    for column in multiColumns:
-        target = index[1]
-        set_estimators = {
-            reg for reg in regression_models[target]['estimators'][1].cv_results_['param_reg']}
-        estimators = {}
-        for x in set_estimators:
+ScoresDataFrame = pandas.DataFrame(index=multiIndex, columns=multiColumns)
+for windowing, lagging in multiIndex:
+    for regressor, score, statistic in multiColumns:
+
+        UniqueRegressorsDataFrame = pandas.DataFrame(
+            regression_models[lagging]['estimators'][windowing].cv_results_
+        ).\
+            sort_values(scores[score]['rank']).\
+            drop_duplicates('param_reg')
+
+        names = []
+        for estimator in UniqueRegressorsDataFrame['param_reg']:
             try:
-                name = x.regressor.__class__.__name__
+                names.append(estimator.regressor.__class__.__name__)
             except AttributeError:
-                name = x.__class__.__name__
+                names.append(estimator.__class__.__name__)
 
-            estimators[name] = x
+        UniqueRegressorsDataFrame['name'] = names
 
-        results_df = (
-            pandas.DataFrame(
-                regression_models[target]['estimators'][index[0]].cv_results_
-            ).
-            sort_values(scores['R2']['mean'], ascending=False)
-        )
-
-        target_results = (
-            results_df.loc[
-                results_df['param_reg'] == estimators[column[0]]
-            ][:1]
-        )
-
-        row.append(target_results[scores[column[1]][column[2]]].values[0])
-
-    data.append(row)
-
-aaaa = pandas.DataFrame(numpy.array(data), multiIndex, multiColumns)
+        ScoresDataFrame.loc[(windowing, lagging), (regressor, score, statistic)] = \
+            UniqueRegressorsDataFrame[UniqueRegressorsDataFrame['name'] == regressor][scores[score][statistic]].values
 
 
 # %%
@@ -260,14 +255,14 @@ def plot_save_score(
         save_folder += '/'
 
     _, ax = plt.subplots()
-    n_plots = len(aaaa.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'))
+    n_plots = len(ScoresDataFrame.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'))
     k = -0.2 * n_plots / 2
-    for reg in aaaa.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'):
+    for reg in ScoresDataFrame.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'):
         trans1 = Affine2D().translate(k, 0.0) + ax.transData
         plt.errorbar(
-            aaaa.loc[windowing][(reg, scorer, 'mean')].index,
-            aaaa.loc[windowing][(reg, scorer, 'mean')],
-            aaaa.loc[windowing][(reg, scorer, 'std')],
+            ScoresDataFrame.loc[windowing][(reg, scorer, 'mean')].index,
+            ScoresDataFrame.loc[windowing][(reg, scorer, 'mean')],
+            ScoresDataFrame.loc[windowing][(reg, scorer, 'std')],
             label=reg,
             transform=trans1
         )
@@ -275,7 +270,7 @@ def plot_save_score(
     plt.ylim(lim)
     plt.ylabel(y_label)
     plt.xlabel(x_label)
-    plt.xticks(aaaa.loc[windowing][(reg, scorer, 'mean')].index)
+    plt.xticks(ScoresDataFrame.loc[windowing][(reg, scorer, 'mean')].index)
     if legend_loc is not None:
         plt.legend(loc=None, bbox_to_anchor=(1.05, 1))
     plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
@@ -286,11 +281,10 @@ def plot_save_score(
 
 # %%
 width = 7.3
-height = 7
 # %%
 plot_save_score(windowing=1,
                 scorer='R2',
-                lim=(0.2, 1),
+                # lim=(0.2, 1),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -301,7 +295,7 @@ plot_save_score(windowing=1,
 # %%
 plot_save_score(windowing=15,
                 scorer='R2',
-                lim=(0.2, 1),
+                # lim=(0.2, 1),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -312,7 +306,7 @@ plot_save_score(windowing=15,
 # %%
 plot_save_score(windowing=30,
                 scorer='R2',
-                lim=(0.2, 1),
+                # lim=(0.2, 1),
                 legend_loc=3,
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -349,7 +343,5 @@ plot_save_score(windowing=30,
                 width=width + 6.5,
                 height=height,
                 save_folder='paper/graphs')
-
-# %%
 
 # %%
