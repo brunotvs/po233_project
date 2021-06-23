@@ -1,4 +1,5 @@
 # %%
+from typing import Tuple, Union
 from source.project_utils.data_manipulation import generate_aggregation
 from source.project_utils.constants import targets, targets_models
 from source.data_base.models import models
@@ -42,37 +43,14 @@ plt.style.use('default')
 
 idx = pandas.IndexSlice
 
-# matplotlib.use("pgf")
-# matplotlib.rcParams.update({
-#     "pgf.texsystem": "pdflatex",
-#     'font.family': 'serif',
-#     'text.usetex': True,
-#     'pgf.rcfonts': False,
-# })
-
-# # %%
-# query = select(
-#     models.Variables.date,
-#     models.Variables.precipitation.label('precipitation'),
-#     models.Variables.temperature.label('temperature'),
-#     models.Variables.evaporation.label('evaporation'),
-#     models.Variables.surface_runoff.label('surface_runoff'),
-#     models.Coordinate.river_id.label('river'),
-#     models.Reservoir.level,
-#     models.Reservoir.streamflow
-# ).\
-#     join(models.Variables.coordinate).\
-#     join(models.Reservoir, models.Variables.date == models.Reservoir.date).\
-#     order_by(models.Variables.date)
-
-# RawDataFrame = pandas.read_sql(query, session.bind)
-
 # %%
 # Carregar o modelo
-debug = False
+debug = True
 models_path = 'model/'
 if debug:
     models_path += 'debug/'
+
+# %%
 regression_models = {}
 targets_models = range(1, 30, 7)
 for target in targets_models:
@@ -89,20 +67,12 @@ def cm_to_inches(cm):
     return cm / 2.54
 
 
-columns_ = [
-    (('shifted_level', ''), 'Shifted Level', 'b'),
-    (('evaporation', 1), 'Evaporation River 1', 'g'),
-    (('evaporation', 6), 'Evaporation River 6', 'r'),
-    (('evaporation', 7), 'Evaporation River 7', 'c'),
-    (('evaporation', 10), 'Evaporation River 10', 'k'),
-    (('month', ''), 'Month', 'y'),
-    (('precipitation', 4), 'Precipitation River 4', 'm'),
-    (('shifted_streamflow', ''), 'Shifted Streamflow', 'brown'),
-    (('surface_runoff', 10), 'Surface Runoff River 10', 'indianred'),
-    (('surface_runoff', 11), 'Surface Runoff River 11', 'darkseagreen'),
-]
+def column_label(column: Tuple[str, Union[str, int]]):
+    label = column[0].replace('_', ' ').capitalize()
+    if column[1] != "":
+        label += f' River {column[1]:02d}'
 
-labels = []
+    return label
 
 
 def plot_save_importance(
@@ -126,16 +96,16 @@ def plot_save_importance(
         plt.plot(
             aaaa.loc[idx[:, windowing, 'mean']][column].index,
             aaaa.loc[idx[:, windowing, 'mean']][column],
-            label=column,
-            # color=column[2],
+            label=column_label(column),
         )
 
     plt.ylim(lim)
     plt.ylabel(y_label)
     plt.xlabel(x_label)
     plt.xticks(ImportancesDataFrame.loc[idx[:, windowing, 'mean']][column[0]].index)
+
     if legend_loc is not None:
-        plt.legend(loc=None, bbox_to_anchor=(1.05, 1))
+        plt.legend(loc=legend_loc, bbox_to_anchor=(1.05, 1))
     plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
     plt.grid(True)
     plt.tight_layout()
@@ -148,7 +118,7 @@ height = 5
 
 # %%
 plot_save_importance(windowing=1,
-                     legend_loc=1,
+                     legend_loc='upper left',
                      x_label='Shift (days)',
                      y_label='Importance',
                      width=width,
@@ -157,7 +127,7 @@ plot_save_importance(windowing=1,
 
 # %%
 plot_save_importance(windowing=15,
-                     legend_loc=1,
+                     legend_loc='upper left',
                      x_label='Shift (days)',
                      y_label='Importance',
                      width=width,
@@ -166,7 +136,7 @@ plot_save_importance(windowing=15,
 
 # %%
 plot_save_importance(windowing=30,
-                     legend_loc=1,
+                     legend_loc='upper left',
                      x_label='Shift (days)',
                      y_label='Importance',
                      width=width,
@@ -272,7 +242,7 @@ def plot_save_score(
     plt.xlabel(x_label)
     plt.xticks(ScoresDataFrame.loc[windowing][(reg, scorer, 'mean')].index)
     if legend_loc is not None:
-        plt.legend(loc=None, bbox_to_anchor=(1.05, 1))
+        plt.legend(loc=legend_loc, bbox_to_anchor=(1.05, 1))
     plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
     plt.grid(True)
     plt.tight_layout()
@@ -307,7 +277,7 @@ plot_save_score(windowing=15,
 plot_save_score(windowing=30,
                 scorer='R2',
                 # lim=(0.2, 1),
-                legend_loc=3,
+                legend_loc='upper left',
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
                 width=width + 6.5,
@@ -337,7 +307,7 @@ plot_save_score(windowing=15,
 # %%
 plot_save_score(windowing=30,
                 scorer='MAE',
-                legend_loc=3,
+                legend_loc='upper left',
                 x_label='Shift (days)',
                 y_label='MAE score',
                 width=width + 6.5,
