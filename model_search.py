@@ -253,7 +253,7 @@ grid_search_params = dict(
         'neg_mean_absolute_percentage_error'
     ],
     cv=KFold(n_splits=10, shuffle=True, random_state=seed),
-    n_jobs=multiprocessing.cpu_count() - 1,
+    n_jobs=-1,
     verbose=1,
     error_score="raise",
     refit='r2'
@@ -273,7 +273,7 @@ agg.update(runoff_agg)
 # %%
 print('GridSearch...')
 shift_regressors = {}
-for shift in range(1, 30, 7):
+for shift in range(15, 30, 7):
     ShiftedDataFrame = ConsolidatedDataFrame.copy()
 
     ShiftedDataFrame.insert(
@@ -299,6 +299,7 @@ for shift in range(1, 30, 7):
             windowed_data={}
         )
         for roll in [1, 15, 30]:
+            print(f"{shift} - {roll} - {target}")
             search = GridSearchCV(Pipeline(steps=pipeline_steps), **grid_search_params)
             WindowedDataFrame = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ShiftedDataFrame)
             target_regressor[target]['estimators'][roll] = search.fit(WindowedDataFrame, WindowedDataFrame[target])
