@@ -1,4 +1,7 @@
 # %%
+import multiprocessing
+import os
+
 import eli5
 import joblib
 import numpy
@@ -19,17 +22,17 @@ from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
 from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
                                      cross_validate, train_test_split)
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder, StandardScaler, OneHotEncoder
+from sklearn.preprocessing import (MinMaxScaler, OneHotEncoder, OrdinalEncoder,
+                                   StandardScaler)
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
 from sqlalchemy.sql.expression import true
 
-
 from source.custom_transfomers.debug_transformer import Debug, DebugY
+from source.custom_transfomers.reshape_transformer import ShapeTransformer
 from source.custom_transfomers.time_window_transformer import \
     TimeWindowTransformer
-from source.custom_transfomers.reshape_transformer import ShapeTransformer
 from source.data_base.connection import session
 from source.data_base.models import models
 from source.project_utils.constants import targets
@@ -49,21 +52,28 @@ pandas.set_option('display.max_columns', 51)
 # %%
 # Construção do dataframe utilizando buscas no banco de dados sql
 print('SQL query...')
-query = select(
-    models.Variables.date,
-    models.Variables.precipitation.label('precipitation'),
-    models.Variables.temperature.label('temperature'),
-    models.Variables.evaporation.label('evaporation'),
-    models.Variables.surface_runoff.label('surface_runoff'),
-    models.Coordinate.river_id.label('river'),
-    models.Reservoir.level,
-    models.Reservoir.streamflow
-).\
-    join(models.Variables.coordinate).\
-    join(models.Reservoir, models.Variables.date == models.Reservoir.date).\
-    order_by(models.Variables.date)
 
-RawDataFrame = pandas.read_sql(query, session.bind)
+if not os.path.isfile('raw_data_frame.pkl'):
+    query = select(
+        models.Variables.date,
+        models.Variables.precipitation.label('precipitation'),
+        models.Variables.temperature.label('temperature'),
+        models.Variables.evaporation.label('evaporation'),
+        models.Variables.surface_runoff.label('surface_runoff'),
+        models.Coordinate.river_id.label('river'),
+        models.Reservoir.level,
+        models.Reservoir.streamflow
+    ).\
+        join(models.Variables.coordinate).\
+        join(models.Reservoir, models.Variables.date == models.Reservoir.date).\
+        order_by(models.Variables.date)
+
+    RawDataFrame = pandas.read_sql(query, session.bind)
+
+    joblib.dump(RawDataFrame, 'raw_data_frame.pkl')
+
+# %%
+RawDataFrame = joblib.load('raw_data_frame.pkl')
 
 # %%
 # DataFrame consolidado porém com os atributos para cada rio posicionados em uma diferente coluna
@@ -195,7 +205,7 @@ grid_search_params = dict(
                 None
             ],
             'reg__regressor__random_state': [seed],
-            'reg__regressor__n_estimators': [10, 100, 250],
+            'reg__regressor__n_estimators': [10, 250],
             'columns__vars': [
                 MinMaxScaler(feature_range=(0, 1)),
                 'passthrough'
@@ -216,7 +226,7 @@ grid_search_params = dict(
                     final_estimator=Ridge(random_state=seed)
                 )
             ],
-            'reg__RandomForest__regressor__n_estimators': [10, 100, 250],
+            'reg__RandomForest__regressor__n_estimators': [10, 250],
             'reg__RandomForest__transformer': [
                 MinMaxScaler(feature_range=(0, 1)),
                 None
@@ -242,8 +252,8 @@ grid_search_params = dict(
         'r2',
         'neg_mean_absolute_percentage_error'
     ],
-    cv=KFold(n_splits=10),
-    n_jobs=-1,
+    cv=KFold(n_splits=10, shuffle=True, random_state=seed),
+    n_jobs=multiprocessing.cpu_count() - 1,
     verbose=1,
     error_score="raise",
     refit='r2'
@@ -327,6 +337,6 @@ for lagging in [1, 8, 15, 22, 29]:
             ImportancesDataFrame = ImportancesDataFrame.append(std_df)
 
 # %%
-joblib.dump(ImportancesDataFrame, 'model/importances.pkl')
+joblib.dump(ImportancesDataFrame, 'model/debug/importances.pkl')
 
 # %%
