@@ -19,22 +19,17 @@ from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
 from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
                                      cross_validate, train_test_split)
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder, StandardScaler
+from sklearn.preprocessing import MinMaxScaler, OrdinalEncoder, StandardScaler, OneHotEncoder
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
 from sqlalchemy.sql.expression import true
 
-from source.custom_transfomers.dataframe_transformers import (
-    AggregateTransformer,
-    GroupByTransformer,
-    PivotTransformer,
-    ResetIndexTransformer,
-    TestTargetColumnSelector,
-    TestTransformer)
+
 from source.custom_transfomers.debug_transformer import Debug, DebugY
 from source.custom_transfomers.time_window_transformer import \
     TimeWindowTransformer
+from source.custom_transfomers.reshape_transformer import ShapeTransformer
 from source.data_base.connection import session
 from source.data_base.models import models
 from source.project_utils.constants import targets
@@ -129,32 +124,45 @@ date_cols = ['month']
 shifted_cols = ['shifted_level', 'shifted_streamflow']
 
 # %%
-cv = KFold(n_splits=10, random_state=seed, shuffle=True)
-
-
 pipeline_steps = [
     ('columns', ColumnTransformer([
         (
-            'normalize',
-            MinMaxScaler(feature_range=(0, 1)),
-            ColumnsLoc(var_cols).get_loc
-        ),
-        (
             'month',
-            OrdinalEncoder(),
+            'passthrough',
             ColumnsLoc(date_cols).get_loc
         ),
         (
-            'historical',
+            'vars',
             'passthrough',
-            ColumnsLoc(shifted_cols).get_loc
-        )
+            ColumnsLoc(var_cols + shifted_cols).get_loc
+        ),
     ],
         remainder='drop',
     )),
     ('reg', DummyRegressor())
 ]
 
+# %%
+svr_month_pipeline_steps = [
+    ('reshape', ShapeTransformer()),
+    ('scale', 'passthrough'),
+]
+
+# %%
+svr_pipeline_steps = [
+    ('columns', ColumnTransformer([
+        (
+            'month',
+            Pipeline(svr_month_pipeline_steps),
+            [0]
+        ),
+    ],
+        remainder=MinMaxScaler(),
+    )),
+    ('reg', DummyRegressor())
+]
+
+# %%
 grid_search_params = dict(
     param_grid=[
         # Para testes rápidos
@@ -170,7 +178,11 @@ grid_search_params = dict(
             ],
             'reg__regressor__C': range(15, 31, 5),
             'reg__regressor__gamma': ['auto', 'scale'],
-            'reg__regressor__kernel': ['rbf']
+            'reg__regressor__kernel': ['rbf'],
+            'columns__vars': [MinMaxScaler()],
+            'columns__month': [
+                OneHotEncoder()
+            ]
         },
         {
             'reg': [
@@ -184,49 +196,41 @@ grid_search_params = dict(
             ],
             'reg__regressor__random_state': [seed],
             'reg__regressor__n_estimators': [10, 100, 250],
-            'columns__normalize': [
+            'columns__vars': [
                 MinMaxScaler(feature_range=(0, 1)),
                 'passthrough'
-            ],
+            ]
         },
         {
             'reg': [
                 StackingRegressor(
                     estimators=[
-                        ('RandomForest', RandomForestRegressor()),
+                        ('RandomForest', TransformedTargetRegressor(
+                            regressor=RandomForestRegressor(random_state=seed)
+                        )),
                         ('SVR', TransformedTargetRegressor(
                             transformer=MinMaxScaler(feature_range=(0, 1)),
-                            regressor=SVR()
+                            regressor=Pipeline(svr_pipeline_steps)
                         ))
                     ],
-                    final_estimator=Ridge()
+                    final_estimator=Ridge(random_state=seed)
                 )
             ],
-            'reg__RandomForest__random_state': [seed],
-            'reg__RandomForest__n_estimators': [10, 100, 250],
-            'reg__SVR__regressor__C': range(15, 31, 5),
+            'reg__RandomForest__regressor__n_estimators': [10, 100, 250],
+            'reg__RandomForest__transformer': [
+                MinMaxScaler(feature_range=(0, 1)),
+                None
+            ],
+            'reg__SVR__regressor__reg': [SVR()],
+            'reg__SVR__regressor__reg__C': range(15, 31, 5),
+            'reg__SVR__regressor__columns__month__scale': [
+                OneHotEncoder()
+            ],
+            'columns__vars': [
+                MinMaxScaler(feature_range=(0, 1)),
+                'passthrough'
+            ]
         },
-        # {
-        #     'reg': [
-        #         StackingRegressor(
-        #             estimators=[
-        #                 ('RandomForest', RandomForestRegressor()),
-        #                 ('SVR', TransformedTargetRegressor(
-        #                     transformer=MinMaxScaler(feature_range=(0, 1)),
-        #                     regressor=SVR()
-        #                 ))
-        #             ],
-        #             final_estimator=TransformedTargetRegressor(
-        #                 transformer=MinMaxScaler(feature_range=(0, 1)),
-        #                 regressor=SVR()
-        #             )
-        #         )
-        #     ],
-        #     'reg__RandomForest__random_state': [seed],
-        #     'reg__RandomForest__n_estimators': [10, 100, 1000],
-        #     'reg__SVR__regressor__C': range(15, 31, 5),
-        #     'reg__final_estimator__regressor__C': range(7, 16, 5),
-        # },
     ],
     scoring=[
         'explained_variance',
@@ -234,16 +238,13 @@ grid_search_params = dict(
         'neg_mean_absolute_error',
         'neg_mean_squared_error',
         'neg_root_mean_squared_error',
-        # 'neg_mean_squared_log_error',
         'neg_median_absolute_error',
         'r2',
-        # 'neg_mean_poisson_deviance',
-        # 'neg_mean_gamma_deviance',
         'neg_mean_absolute_percentage_error'
     ],
-    cv=cv,
+    cv=KFold(n_splits=10),
     n_jobs=-1,
-    verbose=2,
+    verbose=1,
     error_score="raise",
     refit='r2'
 )
@@ -262,7 +263,7 @@ agg.update(runoff_agg)
 # %%
 print('GridSearch...')
 shift_regressors = {}
-for shift in [1, 8, 15, 22, 29]:
+for shift in range(1, 30, 7):
     ShiftedDataFrame = ConsolidatedDataFrame.copy()
 
     ShiftedDataFrame.insert(
@@ -279,60 +280,53 @@ for shift in [1, 8, 15, 22, 29]:
 
     ShiftedDataFrame = ShiftedDataFrame.dropna()
 
-    ShiftedDataFrame['streamflow'] = ShiftedDataFrame['streamflow'].clip(0)
-
     shift_regressors[shift] = {}
     target_regressor = shift_regressors[shift]
-    for target in ['streamflow']:  # targets:
+    for target in ['streamflow']:  # targets
         target_regressor[target] = dict(
             best_score=-9999,
             estimators={},
+            windowed_data={}
         )
         for roll in [1, 15, 30]:
             search = GridSearchCV(Pipeline(steps=pipeline_steps), **grid_search_params)
             WindowedDataFrame = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ShiftedDataFrame)
             target_regressor[target]['estimators'][roll] = search.fit(WindowedDataFrame, WindowedDataFrame[target])
+            target_regressor[target]['windowed_data'][roll] = WindowedDataFrame
             if search.best_score_ > target_regressor[target]['best_score']:
                 target_regressor[target]['best_score'] = search.best_score_
                 target_regressor[target]['best_params'] = search.best_params_
                 target_regressor[target]['best_estimator'] = search.best_estimator_
                 target_regressor[target]['best_windowing'] = roll
-                target_regressor[target]['windowed_data'] = WindowedDataFrame
+                target_regressor[target]['best_windowed_data'] = WindowedDataFrame
 
-        joblib.dump(target_regressor[target], f'model/{target}-s_d{shift:02d}.pkl')
-
-# %%
-regression_models = shift_regressors
-for i in [1, 15, 30]:
-    for score_name, item in regression_models.items():
-
-        mean, std = pandas.DataFrame(item['estimators'][i].cv_results_).sort_values(
-            'rank_test_r2')[['mean_test_r2', 'std_test_r2']][:1].values[0]
-        print(f'------{score_name}-------')
-        print(f'{i} -', f'{mean:.05f} +- {std:.05f}')
+        joblib.dump(target_regressor[target], f'model/debug/{target}-s_d{shift:02d}.pkl')
 
 # %%
 # Testar importância das features
 ImportancesDataFrame = pandas.DataFrame()
 names = ['target', 'windowing', 'fun']
-columns = regression_models['streamflow-s_d01']['windowed_data'].columns
-for i in [1, 15, 30]:
-    for target in [1, 8, 15, 22, 29]:
-        lagging = int(target[-2:])
-        importances = permutation_importance(
-            regression_models[target]['estimators'][i].best_estimator_,
-            regression_models[target]['windowed_data'],
-            regression_models[target]['windowed_data'][target.split('-')[0]],
-            n_repeats=10,
-            random_state=0,
-            n_jobs=-1)
+columns = shift_regressors[1]['streamflow']['best_windowed_data'].columns
+for lagging in [1, 8, 15, 22, 29]:
+    regression_models = shift_regressors[lagging]
+    for target in ['streamflow']:
+        for windowing in [1, 15, 30]:
+            importances = permutation_importance(
+                regression_models[target]['estimators'][windowing].best_estimator_,
+                regression_models[target]['windowed_data'][windowing],
+                regression_models[target]['windowed_data'][windowing][target],
+                n_repeats=10,
+                random_state=0,
+                n_jobs=-1)
 
-        mean_index = pandas.MultiIndex.from_tuples([(lagging, i, 'mean')], names=names)
-        std_index = pandas.MultiIndex.from_tuples([(lagging, i, 'std')], names=names)
-        mean_df = pandas.DataFrame(importances.importances_mean, columns=mean_index, index=columns).transpose()
-        std_df = pandas.DataFrame(importances.importances_std, columns=std_index, index=columns).transpose()
-        ImportancesDataFrame = ImportancesDataFrame.append(mean_df)
-        ImportancesDataFrame = ImportancesDataFrame.append(std_df)
+            mean_index = pandas.MultiIndex.from_tuples([(lagging, windowing, 'mean')], names=names)
+            std_index = pandas.MultiIndex.from_tuples([(lagging, windowing, 'std')], names=names)
+            mean_df = pandas.DataFrame(importances.importances_mean, columns=mean_index, index=columns).transpose()
+            std_df = pandas.DataFrame(importances.importances_std, columns=std_index, index=columns).transpose()
+            ImportancesDataFrame = ImportancesDataFrame.append(mean_df)
+            ImportancesDataFrame = ImportancesDataFrame.append(std_df)
 
 # %%
 joblib.dump(ImportancesDataFrame, 'model/importances.pkl')
+
+# %%

@@ -69,7 +69,7 @@ idx = pandas.IndexSlice
 
 # %%
 # Carregar o modelo
-debug = True
+debug = False
 models_path = 'model/'
 if debug:
     models_path += 'debug/'
@@ -79,7 +79,7 @@ for target in targets_models:
     regression_models[target] = joblib.load(models_path + f'streamflow-s_d{target:02d}.pkl')
 
 # %%
-ImportancesDataFrame = joblib.load('model/importances.pkl')
+ImportancesDataFrame = joblib.load(models_path + 'importances.pkl')
 
 #
 # %%
