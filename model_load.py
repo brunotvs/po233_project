@@ -87,6 +87,7 @@ height = 5
 
 # %%
 plot_save_importance(windowing=1,
+                     lim=(-.2, 2.2),
                      legend_loc='upper left',
                      x_label='Shift (days)',
                      y_label='Importance',
@@ -96,6 +97,7 @@ plot_save_importance(windowing=1,
 
 # %%
 plot_save_importance(windowing=15,
+                     lim=(-.2, 2.2),
                      legend_loc='upper left',
                      x_label='Shift (days)',
                      y_label='Importance',
@@ -105,6 +107,7 @@ plot_save_importance(windowing=15,
 
 # %%
 plot_save_importance(windowing=30,
+                     lim=(-.2, 2.2),
                      legend_loc='upper left',
                      x_label='Shift (days)',
                      y_label='Importance',
@@ -126,12 +129,22 @@ scores = {
     'MAE': {
         'mean': 'mean_test_neg_mean_absolute_error',
         'std': 'std_test_neg_mean_absolute_error',
-        'rank': 'rank_test_neg_mean_absolute_error'
+        'rank': 'rank_test_neg_mean_absolute_error',
     },
     'R2': {
         'mean': 'mean_test_r2',
         'std': 'std_test_r2',
-        'rank': 'rank_test_r2'
+        'rank': 'rank_test_r2',
+    },
+    'MAPE': {
+        'mean': 'mean_test_neg_mean_absolute_percentage_error',
+        'std': 'std_test_neg_mean_absolute_percentage_error',
+        'rank': 'rank_test_neg_mean_absolute_percentage_error',
+    },
+    'RMSE': {
+        'mean': 'mean_test_neg_root_mean_squared_error',
+        'std': 'std_test_neg_root_mean_squared_error',
+        'rank': 'rank_test_neg_root_mean_squared_error',
     },
 }
 
@@ -284,6 +297,66 @@ plot_save_score(windowing=30,
                 legend_loc='upper left',
                 x_label='Shift (days)',
                 y_label='MAE score',
+                width=width + 6.5,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=1,
+                scorer='MAPE',
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='MAPE score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=15,
+                scorer='MAPE',
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='MAPE score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=30,
+                scorer='MAPE',
+                legend_loc='upper left',
+                x_label='Shift (days)',
+                y_label='MAPE score',
+                width=width + 6.5,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=1,
+                scorer='RMSE',
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='RMSE score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=15,
+                scorer='RMSE',
+                legend_loc=None,
+                x_label='Shift (days)',
+                y_label='RMSE score',
+                width=width,
+                height=height,
+                save_folder='paper/graphs')
+
+# %%
+plot_save_score(windowing=30,
+                scorer='RMSE',
+                legend_loc='upper left',
+                x_label='Shift (days)',
+                y_label='RMSE score',
                 width=width + 6.5,
                 height=height,
                 save_folder='paper/graphs')
