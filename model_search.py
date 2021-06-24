@@ -273,7 +273,7 @@ agg.update(runoff_agg)
 # %%
 print('GridSearch...')
 shift_regressors = {}
-for shift in range(15, 30, 7):
+for shift in range(1, 30, 7):
     ShiftedDataFrame = ConsolidatedDataFrame.copy()
 
     ShiftedDataFrame.insert(
@@ -298,46 +298,19 @@ for shift in range(15, 30, 7):
             estimators={},
             windowed_data={}
         )
-        for roll in [1, 15, 30]:
-            print(f"{shift} - {roll} - {target}")
+        for windowing in [1, 15, 30]:
+            print(f"{shift} - {windowing} - {target}", end=' - ')
             search = GridSearchCV(Pipeline(steps=pipeline_steps), **grid_search_params)
-            WindowedDataFrame = TimeWindowTransformer(var_cols, roll, agg, True).fit_transform(ShiftedDataFrame)
-            target_regressor[target]['estimators'][roll] = search.fit(WindowedDataFrame, WindowedDataFrame[target])
-            target_regressor[target]['windowed_data'][roll] = WindowedDataFrame
+            WindowedDataFrame = TimeWindowTransformer(var_cols, windowing, agg, True).fit_transform(ShiftedDataFrame)
+            target_regressor[target]['estimators'][windowing] = search.fit(WindowedDataFrame, WindowedDataFrame[target])
+            target_regressor[target]['windowed_data'][windowing] = WindowedDataFrame
             if search.best_score_ > target_regressor[target]['best_score']:
                 target_regressor[target]['best_score'] = search.best_score_
                 target_regressor[target]['best_params'] = search.best_params_
                 target_regressor[target]['best_estimator'] = search.best_estimator_
-                target_regressor[target]['best_windowing'] = roll
+                target_regressor[target]['best_windowing'] = windowing
                 target_regressor[target]['best_windowed_data'] = WindowedDataFrame
 
         joblib.dump(target_regressor[target], f'model/debug/{target}-s_d{shift:02d}.pkl')
-
-# %%
-# Testar importância das features
-ImportancesDataFrame = pandas.DataFrame()
-names = ['target', 'windowing', 'fun']
-columns = shift_regressors[1]['streamflow']['best_windowed_data'].columns
-for lagging in [1, 8, 15, 22, 29]:
-    regression_models = shift_regressors[lagging]
-    for target in ['streamflow']:
-        for windowing in [1, 15, 30]:
-            importances = permutation_importance(
-                regression_models[target]['estimators'][windowing].best_estimator_,
-                regression_models[target]['windowed_data'][windowing],
-                regression_models[target]['windowed_data'][windowing][target],
-                n_repeats=10,
-                random_state=0,
-                n_jobs=-1)
-
-            mean_index = pandas.MultiIndex.from_tuples([(lagging, windowing, 'mean')], names=names)
-            std_index = pandas.MultiIndex.from_tuples([(lagging, windowing, 'std')], names=names)
-            mean_df = pandas.DataFrame(importances.importances_mean, columns=mean_index, index=columns).transpose()
-            std_df = pandas.DataFrame(importances.importances_std, columns=std_index, index=columns).transpose()
-            ImportancesDataFrame = ImportancesDataFrame.append(mean_df)
-            ImportancesDataFrame = ImportancesDataFrame.append(std_df)
-
-# %%
-joblib.dump(ImportancesDataFrame, 'model/debug/importances.pkl')
 
 # %%
