@@ -1,41 +1,10 @@
 # %%
 from typing import Tuple, Union
-from source.project_utils.data_manipulation import generate_aggregation
-from source.project_utils.constants import targets, targets_models
-from source.data_base.models import models
-from source.data_base.connection import session
-from source.custom_transfomers.time_window_transformer import \
-    TimeWindowTransformer
-from source.custom_transfomers.debug_transformer import Debug
-from sqlalchemy.sql.expression import label, true
-from sqlalchemy import select
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.svm import SVR
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
-                                     cross_validate, train_test_split)
-from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
-                             precision_score, recall_score)
-from sklearn.linear_model import Ridge
-from sklearn.inspection import permutation_importance
-from sklearn.impute import SimpleImputer
-from sklearn.ensemble import RandomForestRegressor, StackingRegressor
-from sklearn.dummy import DummyRegressor
-from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
-from mlxtend.feature_selection import ColumnSelector
-from IPython import get_ipython
-from google_drive_downloader import GoogleDriveDownloader as gdd
-from eli5.sklearn import PermutationImportance
-import tikzplotlib
+from source.project_utils.constants import targets_models
 import pandas
-import numpy
-import matplotlib
 import matplotlib.pyplot as plt
 import joblib
-import eli5
 from matplotlib.transforms import Affine2D
-from matplotlib import transforms
 
 pandas.set_option('display.max_columns', 51)
 

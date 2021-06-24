@@ -1,52 +1,29 @@
 # %%
-import multiprocessing
 import os
 
-import eli5
 import joblib
-import numpy
 import pandas
-from eli5.sklearn import PermutationImportance
-from IPython import get_ipython
-from mlxtend.feature_selection import ColumnSelector
-from scipy.stats.stats import DescribeResult
-from sklearn.compose import (ColumnTransformer, TransformedTargetRegressor,
-                             make_column_selector)
+from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
 from sklearn.dummy import DummyRegressor
 from sklearn.ensemble import RandomForestRegressor, StackingRegressor
-from sklearn.impute import SimpleImputer
-from sklearn.inspection import permutation_importance
 from sklearn.linear_model import Ridge
-from sklearn.metrics import (accuracy_score, f1_score, make_scorer,
-                             precision_score, recall_score)
-from sklearn.model_selection import (GridSearchCV, KFold, cross_val_score,
-                                     cross_validate, train_test_split)
+from sklearn.metrics import accuracy_score, make_scorer
+from sklearn.model_selection import GridSearchCV, KFold
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import (MinMaxScaler, OneHotEncoder, OrdinalEncoder,
-                                   StandardScaler)
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 from sklearn.svm import SVR
 from sklearn.tree import DecisionTreeRegressor
 from sqlalchemy import select
-from sqlalchemy.sql.expression import true
 
-from source.custom_transfomers.debug_transformer import Debug, DebugY
 from source.custom_transfomers.reshape_transformer import ShapeTransformer
 from source.custom_transfomers.time_window_transformer import \
     TimeWindowTransformer
 from source.data_base.connection import session
 from source.data_base.models import models
-from source.project_utils.constants import targets
 from source.project_utils.data_manipulation import (ColumnsLoc,
                                                     generate_aggregation)
 
 pandas.set_option('display.max_columns', 51)
-
-# To add a new cell, type '# %%'
-# To add a new markdown cell, type '# %% [markdown]'
-
-# # %%
-# get_ipython().run_line_magic('load_ext', 'autoreload')
-# get_ipython().run_line_magic('autoreload', '2')
 
 
 # %%
