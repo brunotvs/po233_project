@@ -204,7 +204,7 @@ for windowing, lagging in multiIndex:
         UniqueRegressorsDataFrame['name'] = names
 
         ScoresDataFrame.loc[(windowing, lagging), (regressor, score, statistic)] = \
-            UniqueRegressorsDataFrame[UniqueRegressorsDataFrame['name'] == regressor][scores[score][statistic]].values
+            UniqueRegressorsDataFrame[UniqueRegressorsDataFrame['name'] == regressor][scores[score][statistic]].values[0]
 
 
 # %%
@@ -225,9 +225,11 @@ def plot_save_score(
         save_folder += '/'
 
     _, ax = plt.subplots()
-    n_plots = len(ScoresDataFrame.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'))
+
+    regressors = ScoresDataFrame.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor')
+    n_plots = len(regressors)
     k = -0.2 * n_plots / 2
-    for reg in ScoresDataFrame.loc[idx[windowing], idx[:, scorer]].columns.unique('regressor'):
+    for reg in regressors:
         trans1 = Affine2D().translate(k, 0.0) + ax.transData
         plt.errorbar(
             ScoresDataFrame.loc[windowing][(reg, scorer, 'mean')].index,
@@ -254,7 +256,7 @@ width = 7.3
 # %%
 plot_save_score(windowing=1,
                 scorer='R2',
-                # lim=(0.2, 1),
+                lim=(0.5, 1),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -265,7 +267,7 @@ plot_save_score(windowing=1,
 # %%
 plot_save_score(windowing=15,
                 scorer='R2',
-                # lim=(0.2, 1),
+                lim=(0.5, 1),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -276,7 +278,7 @@ plot_save_score(windowing=15,
 # %%
 plot_save_score(windowing=30,
                 scorer='R2',
-                # lim=(0.2, 1),
+                lim=(0.5, 1),
                 legend_loc='upper left',
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -287,6 +289,7 @@ plot_save_score(windowing=30,
 # %%
 plot_save_score(windowing=1,
                 scorer='MAE',
+                lim=(-300, -80),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='MAE score',
@@ -297,6 +300,7 @@ plot_save_score(windowing=1,
 # %%
 plot_save_score(windowing=15,
                 scorer='MAE',
+                lim=(-300, -80),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='MAE score',
@@ -307,6 +311,7 @@ plot_save_score(windowing=15,
 # %%
 plot_save_score(windowing=30,
                 scorer='MAE',
+                lim=(-300, -80),
                 legend_loc='upper left',
                 x_label='Shift (days)',
                 y_label='MAE score',
