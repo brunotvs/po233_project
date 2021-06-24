@@ -45,7 +45,7 @@ idx = pandas.IndexSlice
 
 # %%
 # Carregar o modelo
-debug = True
+debug = False
 models_path = 'model/'
 if debug:
     models_path += 'debug/'
