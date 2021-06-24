@@ -1,0 +1,135 @@
+<svg host="65bd71144e" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="492px" height="409px" viewBox="-0.5 -0.5 492 409" content="&lt;mxfile&gt;&lt;diagram id=&quot;FzpJu5KoL829TFwe3G3B&quot; name=&quot;Page-1&quot;&gt;7VtJc9sgFP41vnYEyFqOzeL20GY6TqZpjoxEZFpJeBCO7fz6IgusBdlx4kVSpxePeXpgeHwfbxEeoetk9YXj+ew7C0k8gla4GqGbEYTQQfIzF6wLge2DQhBxGhaiiuCevhIltJR0QUOS1RQFY7Gg87owYGlKAlGTYc7Zsq72zOL6r85xRAzBfYBjU/pIQzFTUuD45YOvhEYz9dMedIsHCdbKaiXZDIdsWRGh2xG65oyJ4luyuiZxbjttl6LfZMfT7cQ4ScUhHcaqRybWenEklGtVTcbFjEUsxfFtKb3ibJGGJB/Bkq1S5xtjcykEUvibCLFWG4cXgknRTCSxekpWVPzKu38aq9ZT5cnNSo28aax1IxV8XemUN5+qz8pum5bu98xSMcEJjXPBA00kbqB1R5byc8oSnCoVNVfgbgYIP+coke0gxllGg0I4obFeQWG13FQ7Da8tyxY8UFpQYRXziCgttN10SRbCEiLnLlU4ibGgL/XRsYJttNVTXeVs8bqiMGc0FVll5B+5QCpoAnoKqIp/wG6gpKlvgX368ksxA92qLKUUbZDXjkJllxccL9SK842SkkeaSnrQNDJQWmIw347ljApyP8cbQy/lmVPH2wcwsHM/XwgXZFURmZunraZJrqzme0VzWTkykJLNKqcFsnZvd8Xkey0KOuY17CWxDyIpMknqttL90qwFDqzhSbvDXax196ofTVrb7RZibi8hdrDveD8K/V6gECLnXShE3nlhiAzfcYMFzveJ8QTH9FXagqVv+I9uHARAddMAx7qch7DtoUR+HbLQuQALD94w5/+GfWTDdNLY8blpnIPNzKyhPwZgn/7x7tsbCpwq3tsdivtuwaE3SBhCzz4rDB3Dfd+xQThvBFB3zluPMSTy1phbxuE7uHsAEc+VALomd7vz+q7Bj/uf014SwqtXO7Z5QoUPvnWmWBYNjw6DyUS9Fjo4vfBl0K6XMaHr7PVlwAf79I/2ZZ7JVYGDP5vypTUlESdZxngvyQsOYO/5vBkcHH1B3ZvBHrszv0/uzDcoMsVpyBIpmzDJj5yto/x4QSA3W79Jg2AjNm4jDXBM0tinIM3wfF6DNG6PSaOLBv1gjZ5NtchJApptciPrgRMyGM7Y44YPbuMMbIkTT8EZHS90wxlQYUzJn9OmTR3GiW01j9O/OTt0q1sKC4anGQhlmq8Jtm/va26mJTYbn8CO9mAqDV1Cv61k0JN6n1XPkdD4jXqfvVf/+KsewyloGBUN35dwbDJvfK6k6J+/mdVheNda1OgsvGspHExpFJJesqJZKUDOBSsF9mAqBV16o5aMH3UXiJkp/1WR509H13B0tZl9ICOyngZfDbjbEF4O7sh0llOSLeLC4fffVu4Fj4bxYO6z9PEdwAluMjtHHig74lG/cVUZ2fUhilmpXvsC28Z9CuA2QFesxRjo3Hermy/kj7xbLZvlvwcK9fIvGOj2Lw==&lt;/diagram&gt;&lt;/mxfile&gt;">
+    <defs/>
+    <g>
+        <path d="M 209 30 L 209 42 L 121 42 L 121 55.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 121 60.88 L 117.5 53.88 L 121 55.63 L 124.5 53.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="140" y="0" width="138" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g transform="translate(-0.5 -0.5)">
+            <switch>
+                <foreignObject style="overflow: visible; text-align: left;" pointer-events="none" width="100%" height="100%" requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility">
+                    <div xmlns="http://www.w3.org/1999/xhtml" style="display: flex; align-items: unsafe center; justify-content: unsafe center; width: 136px; height: 1px; padding-top: 15px; margin-left: 141px;">
+                        <div style="box-sizing: border-box; font-size: 0; text-align: center; ">
+                            <div style="display: inline-block; font-size: 17px; font-family: Times New Roman; color: #000000; line-height: 1.2; pointer-events: all; white-space: normal; word-wrap: normal; ">
+                                Time Windowing
+                            </div>
+                        </div>
+                    </div>
+                </foreignObject>
+                <text x="209" y="20" fill="#000000" font-family="Times New Roman" font-size="17px" text-anchor="middle">
+                    Time Windowing
+                </text>
+            </switch>
+        </g>
+        <path d="M 86.5 92 L 86.5 112 L 82 112 L 45 112 L 45 131.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 45 136.88 L 41.5 129.88 L 45 131.63 L 48.5 129.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <path d="M 155.5 92 L 155.5 112 L 302 112 L 302 131.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 302 136.88 L 298.5 129.88 L 302 131.63 L 305.5 129.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="52" y="62" width="138" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="120.5" y="84">
+                Data Normalization
+            </text>
+        </g>
+        <path d="M 302 92 L 302 131.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 302 136.88 L 298.5 129.88 L 302 131.63 L 305.5 129.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <path d="M 302 92 L 302 122 L 431 122 L 431 131.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 431 136.88 L 427.5 129.88 L 431 131.63 L 434.5 129.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <path d="M 302 92 L 302 122 L 203.5 122 L 203.5 131.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 203.5 136.88 L 200 129.88 L 203.5 131.63 L 207 129.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="233" y="62" width="138" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="301.5" y="84">
+                No Normalization
+            </text>
+        </g>
+        <path d="M 45 168 L 45 339 L 93.63 339" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 98.88 339 L 91.88 342.5 L 93.63 339 L 91.88 335.5 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="0" y="138" width="90" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="44.5" y="160">
+                SVR
+            </text>
+        </g>
+        <path d="M 169 168 L 169 178 L 111 178 L 111 184.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 111 189.88 L 107.5 182.88 L 111 184.63 L 114.5 182.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="100" y="138" width="138" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="168.5" y="160">
+                Stacking Regressor
+            </text>
+        </g>
+        <path d="M 302 178 L 302 331.5 L 244.37 331.5" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 239.12 331.5 L 246.12 328 L 244.37 331.5 L 246.12 335 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="244" y="138" width="116" height="40" rx="6" ry="6" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="301.5" y="155">
+                Random Forest
+            </text>
+            <text x="301.5" y="175">
+                Regressor
+            </text>
+        </g>
+        <path d="M 431 178 L 431 346.5 L 244.37 346.5" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 239.12 346.5 L 246.12 343 L 244.37 346.5 L 246.12 350 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="371" y="138" width="120" height="40" rx="6" ry="6" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="430.5" y="155">
+                Decision Tree
+            </text>
+            <text x="430.5" y="175">
+                Regressor
+            </text>
+        </g>
+        <path d="M 170 216.5 L 193.63 216.5" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 198.88 216.5 L 191.88 220 L 193.63 216.5 L 191.88 213 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="52" y="191" width="118" height="51" rx="7.65" ry="7.65" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="110.5" y="213.5">
+                Random Forest
+            </text>
+            <text x="110.5" y="233.5">
+                Regressor
+            </text>
+        </g>
+        <path d="M 229 231.5 L 229 252 L 169 252 L 169 261.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 169 266.88 L 165.5 259.88 L 169 261.63 L 172.5 259.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="200" y="201.5" width="58" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="228.5" y="223.5">
+                SVR
+            </text>
+        </g>
+        <path d="M 169 298 L 169 317.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 169 322.88 L 165.5 315.88 L 169 317.63 L 172.5 315.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="100" y="268" width="138" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="168.5" y="290">
+                Rigde
+            </text>
+        </g>
+        <path d="M 169 354 L 169 374 L 169 358 L 169 371.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 169 376.88 L 165.5 369.88 L 169 371.63 L 172.5 369.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+        <rect x="100" y="324" width="138" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="168.5" y="346">
+                Best R² scorer
+            </text>
+        </g>
+        <rect x="100" y="378" width="138" height="30" rx="4.5" ry="4.5" fill="#ffffff" stroke="#000000" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" text-anchor="middle" font-size="17px">
+            <text x="168.5" y="400">
+                Results
+            </text>
+        </g>
+        <path d="M 209 30 L 209 42 L 302 42 L 302 55.63" fill="none" stroke="#000000" stroke-miterlimit="10" pointer-events="stroke"/>
+        <path d="M 302 60.88 L 298.5 53.88 L 302 55.63 L 305.5 53.88 Z" fill="#000000" stroke="#000000" stroke-miterlimit="10" pointer-events="all"/>
+    </g>
+    <switch>
+        <g requiredFeatures="http://www.w3.org/TR/SVG11/feature#Extensibility"/>
+        <a transform="translate(0,-5)" xlink:href="https://www.diagrams.net/doc/faq/svg-export-text-problems" target="_blank">
+            <text text-anchor="middle" font-size="10px" x="50%" y="100%">
+                Viewer does not support full SVG 1.1
+            </text>
+        </a>
+    </switch>
+</svg>

@@ -16,6 +16,10 @@
 \usepackage{float}
 \usepackage{booktabs}
 \usepackage{tabulary}
+
+\usepackage{caption}
+\usepackage{subcaption}
+\captionsetup{subrefformat=parens}
 \usepackage{svg}
 \usepackage{tikz}
 \usepackage{pgfplots}
@@ -33,7 +37,6 @@
 \usepackage{afterpage}
 \usepackage{graphicx,url}
 \usepackage{subcaption}
-
 %\usepackage[brazil]{babel}
 \usepackage[utf8]{inputenc}
 
@@ -58,7 +61,7 @@
 
 \sloppy
 
-\title{Assessment of climate change impacts on hydro resources in Três Marias reservoir using machine learning models}
+\title{Machine learning methods in streamflow prediction  considering climate variable windowing}
 
 \author{%
     Bruno T. R. V. Silva\inst{1}, %
@@ -79,58 +82,237 @@
 
 \maketitle
 
-%\begin{resumo}
+\begin{abstract}
+    Hydropower operation and planning requires streamflow forecasts. Machine learning methods combined with atmospheric climate variables complement physical models, particularly, where in-situ observations are not available. To make predictions of streamflow of a reservoir, we test four ML techniques: Support Vector Regressor (SVR), Simple Decision Tree, Random Forest (RF), and Stacking Regressor, which combines SVR, RF and Ridge. Also, we add prediction horizon varying from 0 to 29 days for streamflow, and windowing of 1, 15, and 30 days for atmospheric climate variables. Results indicate a better fit in the RF model. Models outperform when a shorter horizon prediction of streamflow and longer windowing for climate variables are considered.
 
-%\end{resumo}
+\end{abstract}
+
 
 \section{Introduction}
 
+Over 63\% of the whole electricity supply in Brazil came from hydropower in 2019. However, Brazil faces reduced availability of hydro resources in recent years \cite{onsseca}. Factors as changes in rainfall-runoff and temperature patterns affect the physical process of streamflow and water level in reservoirs. Impacts of climate variability on hydro resources have become a growing concern, since it may affect negatively the electricity supply in coming years, particularly in countries highly dependent on hydropower, like Brazil. Therefore, the ability to assess and make predictions about the streamflow of reservoirs allow important decisions to be made by competent authorities in order to ensure that water resources can be appropriately allocated.
+
+Machine learning methods have been developed as a complement to physical hydrologic models, particularly, in contexts where data are limited to support those physical-based models. Further, the development of satellite data associated with in situ observations to monitor climate and hydrology makes available data of climate and streamflow more widely in data-poor regions \cite{julie}.
+
+In this work, we make short-term forecast streamflow using Três Marias reservoir as study case. We use atmospheric variables as precipitation, evaporation, temperature, and surface runoff, available in Projeta project \cite{inpe}, and observed data of streamflow and water level of Três Marias reservoir \cite{onsnivel,onsvazao}. We compared four machine learning methods in order to access the best performance of short-term predictions. Moreover, we evaluate the impact of adding a lag of a certain period in streamflow and water level data, as well as, windowing the climate variables.
+
+In Section 2, the related bibliography regarding machine learning models in the context of streamflow is introduced. The study area and data used for the modeling are presented in Section 3, while the pre-processing data and results are described in Section 4, followed by a analysis about the results in Section 5 and conclusion in Section 6.
+
+\section{Related bibliography}
+
+Using physical or statistical models to study hydrological processes can raise several problems, such as high computational costs, weakness in uncertainty analysis and the need for a large number of comprehensive data \cite{ardabili2019deep}. Therefore, as a strategy to tackle some of these problems, machine learning methods, particularly Support Vector for Regression (SVR) and Random Forest (RF), have been growing in the water resource research community.
+
+Support Vector for Regression (SVR) has an appropriate performance in solving small-scale, over-learning and nonlinear high-dimensional problems in the field of hydrological prediction \cite{xu,wang}. This regression model can be constructed using a nonlinear mapping function onto a high-dimensional space, in which the non-linear separable problem becomes linearly separable in space \cite{maity}. However, this model is highly dependent on kernel parameters.
+
+Conventional decision tree learners generate a tree by splitting the data based on the values of predictors. Each node in the tree represents a test of some attribute, while each branch from that node is the possible value for that attribute.
+
+Random Forest (RF) is also a widely used algorithm because of its satisfactory predictive power for time series \cite{wang}. Additionally, the model has the advantage of a simplified data pre-processing \cite{li}. The RF model combines a simple decision tree, in which each tree is generated by selecting random samples, and features from all predictors \cite{naghibi}.
+
+According to \cite{dou}, ensemble machine learning techniques
+provide an accurate and efficient solution in spatial modeling. Stacking ensemble ML algorithm learns how to combine the predictors from other well-performing models. In our case, we combined both SVR, RF models and Ridge regressors.
+
+The natural complexity of hydrologic variables drives the approaches of mathematical models to actual output, in this case, streamflow. Although the selection of input variables varies according to the study, precipitation and temperature are common variables as observed in \cite{kassem2020predicting,essenfelder2020smart,bhatta2019evaluation}. Historical data of streamflow itself as input variable was present in \cite{li}. In order to approach the natural structure of a reservoir, we included in our work the variables runoff and evaporation, besides precipitation, evaporation, streamflow and water level.
+
+\section{Material and methods}
+
+We selected Três Marias reservoir as a case study to forecast its short-term streamflow using four machine learning techniques: SVR, decision tree, RF and Stacking Regressor, combining both SVR and RF. We first describe the study area and data collection, then, we presented the parameters and applied methods of machine learning.
+
+\subsection{Study area and descriptive analysis}
+We chose Três Marias reservoir for two main reasons. First because of its importance to the Brazilian electricity system, since this reservoir holds a hydropower plant of 396 MW of installed capacity. Second, there are available atmospheric climate data at a high spatial resolution (5 km) for the Southeastern region, where Três Marias is located. Três Marias reservoir is inside the Alto São Francisco sub-basin in Minas Gerais state (Figure \ref{fig:studyarea}).
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Figures/mapa.pdf}
+    \caption{Alto São Francisco sub-basin.}
+    \label{fig:studyarea}
+\end{figure}
+
+We defined the river-group of each coordinate point using as reference \cite{fundep}.
+
+\subsection{Data}
+
+We collected atmospheric climate data generated by CPTEC/INPE, available on the Projeta Platform \cite{chou2014assessment,chou2014evaluation,Lyra2018}, to forecast streamflow for Três Marias reservoir. The available data includes the period from January 1999 to December 2005. We combined that with observed data of streamflow and water level for the same period, available on \cite{onsnivel,onsvazao}. In our study, streamflow is the target variable, but its previous value is also input to the prediction. All variables are shown in Table~\ref{tab:predictors}. For further information of data exploration, see Appendix A.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Relation of predictors.}
+    \label{tab:predictors}
+    %\resizebox{0.6\columnwidth}{!}{%
+    \renewcommand{\arraystretch}{.8}
+    \small\begin{tabulary}{\textwidth}{lcCcCr}
+        \toprule
+        \normalsize\bfseries{Variable} &
+        \normalsize\bfseries{Unit} &
+        \normalsize\bfseries{Temporal resolution} &
+        \normalsize\bfseries{Historical data}  \\
+        \midrule
+        Temperature (T)    & ºC   & Daily   & 1999-2005 \\
+        Precipitation (P)  & mm   & Daily   & 1999-2005 \\
+        Evaporation (E)    & mm   & Daily   & 1999-2005 \\
+        Surface runoff (R) & mm   & Daily   & 1999-2005 \\
+        Streamflow (SF)    & m³/s & Daily   & 1999-2005 \\
+        Water level (WL)   & m    & Daily   & 1999-2005 \\
+        Month (M)          & -   & -        & 1999-2005 \\
+        \bottomrule
+    \end{tabulary}
+    %}
+\end{table}
+
+%Descrever os dados: números de exemplos, de atributos, os tipos e escalas dos atributos, se é classificação/regressão, etc.. Se for classificação, dizer a proporção de exemplos na classe com mais observações (majoritária).
+
+\subsection{Methods and evaluation criteria}
+
+We tested four models: SVR, simple decision tree, RF and stacking ensemble method. We evaluated the performance of each model adding a lag for streamflow and water level varying from 1, 8, 15, 22 and 29 days. Furthermore, we included a windowing for climate variables in intervals of 1, 15, and 30 days.
+
+Using the python library Scikit-Learn \cite{scikit-learn}, we applied iterative steps, also known as pipelines, to detail the parameters and regression techniques. After these steps, we analyse the predictors results by the metrics R-squared score and Mean Absolute Error (MAE) to analyse their performance. Figure \ref{fig:pipelines} describes the pipelines.
+
+We used a combination of parameters to tune the model with R-squared score as metric, leveraging the GridSearchCV scikit-learn tool. In GridSearchCV, we define some constraints of each parameter, available in Appendix B.
+
+\begin{figure}[htbp]
+    \centering
+    {\footnotesize\includesvg[width=.8\linewidth]{Diagrams/gridsearch.drawio}}
+    \caption{Pipelines in the machine learning models.}
+    \label{fig:pipelines}
+\end{figure}
+
+To evaluate the performance of SVR, RF, Stacking Regressor and decision tree, we use two criteria: Mean Absolute Error (MAE) and R-squared. MAE represents the average of the absolute difference between the actual and predicted values. This procedure is represented by the Equation
+\begin{equation}
+    \label{eqn:mae}
+    MAE={\frac{1}{n}\sum_{i-1}^{n}|(X_{pred}-X_{i})|}
+\end{equation}
+in which $n$ means the number of non-missing data, $i$ is the variable, $X_{pred}$ and $X_{i}$ mean the predicted and the actual value, respectively.
+
+Conversely, $R^2$ represents the proportion of the variance in the dependent variable which is explained by the regression model, given by the Equation
+\begin{equation}
+    \label{eqn:r2}
+    R^2={1 - \frac{\sum_{i=1}^{n}(X_{pred}-X_{i})^{2}}{\sum_{i=1}^{n}(X_{i}-X_{mean})^{2}}}
+\end{equation}
+where $X_{mean}$ is $\frac{1}{n}\sum_{i=1}^{n}X_{i}$ and $X_{pred}$ and $X_{i}$ are the predicted and it's corresponding true value, while $n$ is the size of the test sample. R-square is a indicator of goodness, indicating how well the model can predict unseen samples. The best possible R-squared value is $1.0$ and it can be negative, as the model gets arbitrarily worse. I
+
+\section{Data preprocessing}
+
+We followed three main steps to organize the data into attribute-value format: data reduction, data integration, and data transformation,  Originally, we had a large dataset with the variables P, E, T, and R related to 1673 coordinate points inside the sub-basin limits in the period between 1999 to 2005.
+
+We aggregated the coordinate points into 11 groups of rivers according to their contribution area to the Três Marias reservoir. We considered the daily sum for P and E, and the daily mean for T and R values. Thus, we created weather variables of P, E, T, and R for 11 groups of rivers instead of 1673 points (see Appendix). Additinally, we considered month as a qualitative attribute in order to capture seasonal changes in streamflow.
+
+\subsection{Normalization}
+
+The variables were normalized to prevent the model from being dominated by large values. We used the Min-max normalization given by the Equation
+\begin{equation}
+    \label{eqn:Normalization}
+    x' = \frac{x-min(x)}{max(x)-min(x)}
+\end{equation}
+to adjust the scale of the inputs. Where the value $x$ is the present value, $min(x)$ is the minimum value of the feature, and $max(x)$ is the maximum value of the feature. Then, we transformed that to their original scale.
+
+We applied this procedure for every variable in the dataset, except for month. While only the scale in the values changed with the normalization procedure, it is easier to identify the variation in mean and standard deviation between variables, as shown in Figure \ref{fig:Normalized} for the inputs in the first river.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.8\linewidth, trim=0cm 0 0 .7cm,clip=true]{Figures/Normalização.png}
+    \caption{Boxplot of inputs from raw data x normalized data}
+    \label{fig:Normalized}
+\end{figure}
+
+Other preprocessing procedures, such as feature selection or dimensionality reduction, are not applicable since we filtered the data in the first step (download from Projeta Platform). Therefore, all data is composed of numeric values that make other transformation techniques unnecessary.
+
+\section{Results and discussion}
+
+Having tested horizon prediction of streamflow and water level varying from 1 to 29 days, and windowing at intervals of 1, 15 and 30 days for the climate variables, results indicated better fit for horizon of one day and window of 30 days. However, the models presented different results when they are compared to each other, as shown in Figure \ref{fig:r2}.
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{.49\textwidth}
+        \centering
+        \includesvg{Graphs/R2_w01}
+        \captionsetup{margin={.15\textwidth, 0cm}}
+        \caption{1 day windowing}
+        \label{fig:r2_1}
+    \end{subfigure}
+    \begin{subfigure}[b]{.49\textwidth}
+        \centering
+        \includesvg{Graphs/R2_w15}
+        \captionsetup{margin={.15\textwidth, 0cm}}
+        \caption{15 days windowing}
+        \label{fig:r2_15}
+    \end{subfigure}
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includesvg{Graphs/R2_w30}
+        \captionsetup{justification=justified,singlelinecheck=false}
+        \captionsetup{margin={.23\linewidth, 0cm}}
+        \caption{30 days windowing}
+        \label{fig:r2_30}
+    \end{subfigure}
+    \caption{\textbf{$R^2$} for \subref{fig:r2_1} 1, \subref{fig:r2_15} 15, and \subref{fig:r2_30} 30 days windowing}
+    \label{fig:r2}
+\end{figure}
+
+According to the increase of streamflow  and water level horizon, SVR decreased its R-squared in all considered periods of windowing. However, other models presented an unexpected performance varying the R-squared score in different ways. Regarding the 1 day-windowing, RF, Stacking Regressor and decision tree models had a turning point in 15 days-lagging, in which the performance reached its lowest point and rose again. This trend is kept in 15 days-windowing for Stacking Regressor, but for RF and decision tree, the performance with the horizon increase tends to establish. In 30 days-windowing, the models presented a greater $R^2$ variation in the interval between 0 to 7 days of streamflow and water level prediction horizon
+and then, that variation became less accentuated, except for SVR.
+
+Results indicated that the variable shifted streamflow lost its strength with the horizon increasing, while the models become more dependent on other variables, as indicated in Figure \ref{fig:sfig1_relevance}, \ref{fig:sfig2_relevance}, and \ref{fig:sfig3_relevance}. Month variable had its importance increased in 1 day and 15 days of window, while in 30 days-windowing it is decreased. Evaporation starts being more relevant with 30-days windowing.
+
+\begin{figure}[htbp]
+    \centering
+    \includesvg{Graphs/Importance_w01}
+    \caption{Variable relevance: 1 day-windowing.}
+    \label{fig:sfig1_relevance}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includesvg{Graphs/Importance_w15}
+    \caption{Variable relevance: 15 days-windowing.}
+    \label{fig:sfig2_relevance}
+\end{figure}
+\begin{figure}[htbp]
+    \centering
+    \includesvg{Graphs/Importance_w30}
+    \caption{Variable relevance: 30 days-windowing.}
+    \label{fig:sfig3_relevance}
+\end{figure}
+
+Figure \ref{fig:sfigMAE} presents MAE values for different period-windowing. MAE were increased with  higher horizon, except for RF model in 15 and 30 days-windowing, which had lower MAE with a greater prediction horizon. However, if the error are compared analyzing the period-windowing, results indicate that there is a slight improvement regards MAE when this period is increased. This suggests a better performance when climate data are analyzed within a greater windowing. In a physical process, that might represent the period of delay that climate variables, which were collected in the large sub-basin extension, have an impact on the upstream reservoir.
 
 
 \begin{figure}[htbp]
-    {\centering
+    \centering
     \begin{subfigure}[b]{.49\textwidth}
         \centering
-        \includesvg{graphs/R2_w01}
-        \caption{<caption>}
+        \includesvg{Graphs/MAE_w01}
+        \captionsetup{margin={.15\textwidth, 0cm}}
+        \caption{1 day windowing}
+        \label{fig:sfig1MAE}
     \end{subfigure}
     \begin{subfigure}[b]{.49\textwidth}
         \centering
-        \includesvg{graphs/R2_w15}
-        \caption{<caption>}
-    \end{subfigure}}
-
-    \begin{subfigure}[b]{.49\textwidth}
-        \centering
-        \includesvg{graphs/R2_w30}
-        \caption{<caption>}
+        \includesvg{Graphs/MAE_w15}
+        \captionsetup{margin={.15\textwidth, 0cm}}
+        \caption{15 days windowing}
+        \label{fig:sfig2MAE}
     \end{subfigure}
-    \caption{<caption>}
-    \label{<label>}
+    \begin{subfigure}[b]{\textwidth}
+        \centering
+        \includesvg{Graphs/MAE_w30}
+        \captionsetup{margin={.23\linewidth, 0cm}}
+        \captionsetup{justification=justified,singlelinecheck=false}
+        \caption{30 days windowing}
+        \label{fig:sfig3MAE}
+    \end{subfigure}
+    \caption{Mean Absolute Errors (MAE) for \subref{fig:sfig1MAE} 1, \subref{fig:sfig2MAE} 15, and \subref{fig:sfig3MAE} 30 days windowing}
+    \label{fig:sfigMAE}
 \end{figure}
 
-\begin{figure}[htbp]
-    {\centering
-    \begin{subfigure}[b]{.49\textwidth}
-        \centering
-        \includesvg{graphs/MAE_w01}
-        \caption{<caption>}
-    \end{subfigure}
-    \begin{subfigure}[b]{.49\textwidth}
-        \centering
-        \includesvg{graphs/MAE_w15}
-        \caption{<caption>}
-    \end{subfigure}}
+RF had a better results in terms of MAE and $R^2$ if compared to other models. SVR presented presented worst results in both metrics, while both Stacking Regressor and Decision Tree had similar results.
 
-    \begin{subfigure}[b]{.49\textwidth}
-        \centering
-        \includesvg{graphs/MAE_w30}
-        \caption{<caption>}
-    \end{subfigure}
-    \caption{<caption>}
-    \label{<label1>}
-\end{figure}
+\section{Conclusion}
 
+In this work, we tested four methods to forecast streamflow using Três Marias reservoir as a study case. Results indicated that RF had the best fit over the models.  For one-day prediction horizon for streamflow and water level , models presented R-squared values in the range 0.7 to 0.9, but that decreases according to the increase of  prediction horizon. With regards to windowing of climate variables, the best fits occur when considering a 30 days-windowing, which might be related to the delay of the physical process impact of all climate variables in the entire sub-basin on the reservoir upstream.
+
+SVR had the highest values of MAE, while RF had the lowest values. The Stacking Regressor and decision tree produced similar values of MAE. Surprisingly, RF presented a slight increase of MAE for greater days of lagging, and for the case of 15 and 30 days-windowing, while the other models presented a trend of having a decline.
+
+Empirical results obtained from these models showed the performance not only over the models, but also changing the lag of streamflow and water level, and the window period of climate variables. That is important in solving water resources management problems and improve the accuracy of flow prediction.
+
+Finally, other properties that have a direct impact on streamflow, as land-use, soil classification, and wind speed, might improve the approach of modeling to the actual physical phenomena. Thus, we suggest the inclusion of other climate variables, and also other reservoir study cases.
 
 %\subsection{Machine learning models} \label{subsec:pre-processamento}
 
@@ -144,5 +326,10 @@
 
 \bibliographystyle{sbc}
 \bibliography{sbc-template}
+
+
+\appendix
+\input{Appendix}
+
 
 \end{document}

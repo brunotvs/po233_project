@@ -1,0 +1,63 @@
+\section{Data exploration}
+
+  \begin{figure}[H]
+  \centering
+  \includesvg[width=.6\linewidth]{Figures/hist_prec.svg}
+  \caption{Histogram of precipitation.}
+  \end{figure}
+  
+    \begin{figure}[H]
+  \centering
+  \includesvg[width=.6\linewidth]{Figures/hist_temp.svg}
+  \caption{Histogram of temperature.}
+  \end{figure}
+  
+    \begin{figure}[H]
+  \centering
+  \includesvg[width=.6\linewidth]{Figures/hist_evap.svg}
+  \caption{Histogram of evaporation.}
+  \end{figure}
+  
+    \begin{figure}[H]
+  \centering
+  \includesvg[width=.6\linewidth]{Figures/hist_rnof.svg}
+  \caption{Histogram of surface runoff.}
+  \end{figure}
+  
+      \begin{figure}[H]
+  \centering
+  \includesvg[width=.6\linewidth]{Figures/hist_streamflow.svg}
+  \caption{Histogram of streamflow.}
+  \end{figure}
+  
+      \begin{figure}[H]
+  \centering
+  \includesvg[width=.6\linewidth]{Figures/hist_waterlevel.svg}
+  \caption{Histogram of water level.}
+  \end{figure}
+
+\section{Parameters}
+
+\textbf{Support Vector Regression (SVR)}
+
+Kernel type: 'rbf' \\
+Regularization parameter (c'): 15 to 31, step=5\\
+Kernel coefficient for 'rbf' ($\gamma$)= scale/auto\\
+
+\textbf{Random Forest (RF)}
+
+The number of tree in the forest: -10, 100 or 250
+
+\textbf{Stacked regressor - SVR and RF}
+
+Combined parameters from SVR and RF.
+
+\textbf{Simple decision tree}
+
+Maximal decision tree: 5
+
+
+
+
+
+
