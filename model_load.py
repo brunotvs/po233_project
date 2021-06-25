@@ -45,6 +45,9 @@ def cm_to_inches(cm):
 
 
 def column_label(column: Tuple[str, Union[str, int]]):
+    if isinstance(column, str) == 1:
+        return column.replace('_', ' ').capitalize()
+
     label = column[0].replace('_', ' ').capitalize()
     if column[1] != "":
         label += f' River {column[1]:02d}'
@@ -91,7 +94,7 @@ def plot_save_importance(
 
 # %%
 width = 15
-height = 5
+height = 4.5
 
 # %%
 plot_save_importance(windowing=1,
@@ -122,6 +125,75 @@ plot_save_importance(windowing=30,
                      width=width,
                      height=height,
                      save_folder='paper/graphs')
+
+
+# %%
+def plot_save_categorized_importance(
+        windowing=1,
+        lim=None,
+        legend_loc=None,
+        save_folder: str = '.',
+        x_label=None,
+        y_label=None,
+        width=6.4,
+        height=4.8):
+    if not save_folder.endswith('/'):
+        save_folder += '/'
+    aaaa = ImportancesDataFrame.copy().transpose()
+    aaaa = aaaa.groupby(level=0).sum()[(aaaa.groupby(level=0).sum().T != 0).any()]
+    aaaa = aaaa.sort_values((1, windowing, 'mean'), ascending=False).T
+    for column in aaaa.loc[idx[:, windowing, 'mean']].columns.sort_values():
+
+        plt.plot(
+            aaaa.loc[idx[:, windowing, 'mean']][column].index,
+            aaaa.loc[idx[:, windowing, 'mean']][column],
+            label=column_label(column),
+        )
+
+    plt.ylim(lim)
+    plt.ylabel(y_label)
+    plt.xlabel(x_label)
+    plt.xticks(ImportancesDataFrame.loc[idx[:, windowing, 'mean']][column].index)
+
+    if legend_loc is not None:
+        plt.legend(loc=legend_loc, bbox_to_anchor=(1.05, 1))
+    plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_folder + f'CategorizedImportance_w{windowing:02d}.svg')
+
+
+# %%
+width = 7.3
+height = 5
+
+# %%
+plot_save_categorized_importance(windowing=1,
+                                 lim=(-0.2, 2.6),
+                                 x_label='Shift (days)',
+                                 y_label='Importance',
+                                 width=width,
+                                 height=height,
+                                 save_folder='paper/graphs')
+
+# %%
+plot_save_categorized_importance(windowing=15,
+                                 lim=(-0.2, 2.6),
+                                 x_label='Shift (days)',
+                                 y_label='Importance',
+                                 width=width,
+                                 height=height,
+                                 save_folder='paper/graphs')
+
+# %%
+plot_save_categorized_importance(windowing=30,
+                                 lim=(-0.2, 2.6),
+                                 legend_loc='upper left',
+                                 x_label='Shift (days)',
+                                 y_label='Importance',
+                                 width=width + 5.2,
+                                 height=height,
+                                 save_folder='paper/graphs')
 
 # %%
 indexes = []
@@ -244,6 +316,7 @@ def plot_save_score(
 
 # %%
 width = 7.3
+height = 4.5
 # %%
 plot_save_score(windowing=1,
                 scorer='R2',
@@ -372,8 +445,8 @@ plot_save_score(windowing=30,
 
 # %%
 date_start = datetime.date(2000, 1, 1)
-date_end = datetime.date(2005, 1, 1)
-interpolate_steps = 5
+date_end = datetime.date(2001, 1, 1)
+interpolate_steps = 1
 time_slice = slice(date_start, date_end)
 time_slice_interpolate = slice(date_start, date_end, interpolate_steps)
 
