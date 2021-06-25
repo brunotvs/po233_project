@@ -182,7 +182,7 @@ grid_search_params = dict(
                 None
             ],
             'reg__regressor__random_state': [seed],
-            'reg__regressor__n_estimators': [10, 250],
+            'reg__regressor__n_estimators': [10, 100, 250],
             'columns__vars': [
                 MinMaxScaler(feature_range=(0, 1)),
                 'passthrough'
@@ -203,7 +203,7 @@ grid_search_params = dict(
                     final_estimator=Ridge(random_state=seed)
                 )
             ],
-            'reg__RandomForest__regressor__n_estimators': [10, 250],
+            'reg__RandomForest__regressor__n_estimators': [10, 100, 250],
             'reg__RandomForest__transformer': [
                 MinMaxScaler(feature_range=(0, 1)),
                 None
