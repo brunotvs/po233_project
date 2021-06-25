@@ -30,4 +30,5 @@
 /*.pdf
 svg-inkscape
 
-texmf
+# Generated graphs
+Graphs/
