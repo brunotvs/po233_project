@@ -1,10 +1,18 @@
 # %%
+import datetime
 from typing import Tuple, Union
-from source.project_utils.constants import targets_models
-import pandas
-import matplotlib.pyplot as plt
+
 import joblib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas
+import scipy.interpolate
+import scipy.stats
 from matplotlib.transforms import Affine2D
+from sklearn.model_selection import cross_val_predict
+from sqlalchemy.sql.expression import label
+
+from source.project_utils.constants import targets_models
 
 pandas.set_option('display.max_columns', 51)
 
@@ -186,7 +194,8 @@ for windowing, lagging in multiIndex:
         UniqueRegressorsDataFrame['name'] = names
 
         ScoresDataFrame.loc[(windowing, lagging), (regressor, score, statistic)] = \
-            UniqueRegressorsDataFrame[UniqueRegressorsDataFrame['name'] == regressor][scores[score][statistic]].values[0]
+            UniqueRegressorsDataFrame[UniqueRegressorsDataFrame['name']
+                                      == regressor][scores[score][statistic]].values[0]
 
 
 # %%
@@ -238,7 +247,7 @@ width = 7.3
 # %%
 plot_save_score(windowing=1,
                 scorer='R2',
-                lim=(0.5, 1),
+                lim=(0.4, 1),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -249,7 +258,7 @@ plot_save_score(windowing=1,
 # %%
 plot_save_score(windowing=15,
                 scorer='R2',
-                lim=(0.5, 1),
+                lim=(0.4, 1),
                 legend_loc=None,
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -260,7 +269,7 @@ plot_save_score(windowing=15,
 # %%
 plot_save_score(windowing=30,
                 scorer='R2',
-                lim=(0.5, 1),
+                lim=(0.4, 1),
                 legend_loc='upper left',
                 x_label='Shift (days)',
                 y_label='$R^2$ score',
@@ -274,7 +283,7 @@ plot_save_score(windowing=1,
                 lim=(-300, -80),
                 legend_loc=None,
                 x_label='Shift (days)',
-                y_label='MAE score',
+                y_label='Negative MAE score',
                 width=width,
                 height=height,
                 save_folder='paper/graphs')
@@ -285,7 +294,7 @@ plot_save_score(windowing=15,
                 lim=(-300, -80),
                 legend_loc=None,
                 x_label='Shift (days)',
-                y_label='MAE score',
+                y_label='Negative MAE score',
                 width=width,
                 height=height,
                 save_folder='paper/graphs')
@@ -296,7 +305,7 @@ plot_save_score(windowing=30,
                 lim=(-300, -80),
                 legend_loc='upper left',
                 x_label='Shift (days)',
-                y_label='MAE score',
+                y_label='Negative MAE score',
                 width=width + 6.5,
                 height=height,
                 save_folder='paper/graphs')
@@ -306,7 +315,7 @@ plot_save_score(windowing=1,
                 scorer='MAPE',
                 legend_loc=None,
                 x_label='Shift (days)',
-                y_label='MAPE score',
+                y_label='Negative MAPE score',
                 width=width,
                 height=height,
                 save_folder='paper/graphs')
@@ -316,7 +325,7 @@ plot_save_score(windowing=15,
                 scorer='MAPE',
                 legend_loc=None,
                 x_label='Shift (days)',
-                y_label='MAPE score',
+                y_label='Negative MAPE score',
                 width=width,
                 height=height,
                 save_folder='paper/graphs')
@@ -326,7 +335,7 @@ plot_save_score(windowing=30,
                 scorer='MAPE',
                 legend_loc='upper left',
                 x_label='Shift (days)',
-                y_label='MAPE score',
+                y_label='Negative MAPE score',
                 width=width + 6.5,
                 height=height,
                 save_folder='paper/graphs')
@@ -336,7 +345,7 @@ plot_save_score(windowing=1,
                 scorer='RMSE',
                 legend_loc=None,
                 x_label='Shift (days)',
-                y_label='RMSE score',
+                y_label='Negative RMSE score',
                 width=width,
                 height=height,
                 save_folder='paper/graphs')
@@ -346,7 +355,7 @@ plot_save_score(windowing=15,
                 scorer='RMSE',
                 legend_loc=None,
                 x_label='Shift (days)',
-                y_label='RMSE score',
+                y_label='Negative RMSE score',
                 width=width,
                 height=height,
                 save_folder='paper/graphs')
@@ -356,9 +365,47 @@ plot_save_score(windowing=30,
                 scorer='RMSE',
                 legend_loc='upper left',
                 x_label='Shift (days)',
-                y_label='RMSE score',
+                y_label='Negative RMSE score',
                 width=width + 6.5,
                 height=height,
                 save_folder='paper/graphs')
 
 # %%
+date_start = datetime.date(2001, 8, 25)
+date_end = datetime.date(2001, 10, 30)
+interpolate_steps = 1
+time_slice = slice(date_start, date_end)
+time_slice_interpolate = slice(date_start, date_end, interpolate_steps)
+
+original_data = regression_models[1]['best_windowed_data']['streamflow']
+
+predict_X_y_spline = scipy.interpolate.make_interp_spline(
+    original_data.loc[time_slice_interpolate].index.values,
+    original_data.loc[time_slice_interpolate].values
+)
+interpolated_original_y = predict_X_y_spline(original_data.loc[time_slice].index)
+
+# %%
+for shift in range(1, 30, 7):
+    cv_predict = cross_val_predict(
+        regression_models[shift]['best_estimator'],
+        regression_models[shift]['best_windowed_data'],
+        regression_models[shift]['best_windowed_data']['streamflow'],
+        n_jobs=-1)
+
+    predicted_values = pandas.DataFrame(
+        cv_predict,
+        columns=['predict'],
+        index=regression_models[shift]['best_windowed_data'].index)
+
+    predict_X_y_spline = scipy.interpolate.make_interp_spline(
+        predicted_values.loc[time_slice_interpolate].index.values,
+        predicted_values.loc[time_slice_interpolate].values
+    )
+
+    interpolated_predicted_y = predict_X_y_spline(predicted_values.loc[time_slice].index)
+    plt.plot(original_data.loc[time_slice].index.values, interpolated_original_y,)
+    plt.plot(predicted_values.loc[time_slice].index, interpolated_predicted_y, label=shift)
+
+    plt.legend()
+    plt.show()
