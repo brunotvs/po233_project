@@ -487,3 +487,19 @@ for shift in [1, 29]:  # range(1, 30, 7):
     plt.legend(loc='upper right')
     plt.savefig(f'paper/Graphs/Comparisson_d{shift:02d}.svg')
     plt.show()
+
+
+# %%
+plt.style.use('default')
+plt.gca().xaxis.set_major_locator(plt.MultipleLocator(500))
+plt.hist(regression_models[1]['windowed_data'][1]['streamflow'], bins=20, color='w', edgecolor='black')
+plt.axvline(np.median(regression_models[1]['windowed_data'][1]['streamflow'].values), color='b', linestyle='dashed')
+plt.xlabel('Streamflow ($m^3/s$)')
+# plt.xticks(ticks=500)
+# %%
+plt.style.use('default')
+plt.hist(regression_models[1]['windowed_data'][1]['level'], bins=20, color='w', edgecolor='black')
+plt.axvline(np.median(regression_models[1]['windowed_data'][1]['level'].values), color='b', linestyle='dashed')
+plt.xlabel('Streamflow ($m^3/s$)')
+
+# %%
