@@ -5,31 +5,31 @@
   \includesvg[width=.6\linewidth]{Figures/hist_prec.svg}
   \caption{Histogram of precipitation.}
   \end{figure}
-  
+
     \begin{figure}[H]
   \centering
   \includesvg[width=.6\linewidth]{Figures/hist_temp.svg}
   \caption{Histogram of temperature.}
   \end{figure}
-  
+
     \begin{figure}[H]
   \centering
   \includesvg[width=.6\linewidth]{Figures/hist_evap.svg}
   \caption{Histogram of evaporation.}
   \end{figure}
-  
+
     \begin{figure}[H]
   \centering
   \includesvg[width=.6\linewidth]{Figures/hist_rnof.svg}
   \caption{Histogram of surface runoff.}
   \end{figure}
-  
+
       \begin{figure}[H]
   \centering
   \includesvg[width=.6\linewidth]{Figures/hist_streamflow.svg}
   \caption{Histogram of streamflow.}
   \end{figure}
-  
+
       \begin{figure}[H]
   \centering
   \includesvg[width=.6\linewidth]{Figures/hist_waterlevel.svg}
@@ -37,23 +37,30 @@
   \end{figure}
 
 \section{Parameters}
-
+\noindent
 \textbf{Support Vector Regression (SVR)}
 
+\noindent
 Kernel type: 'rbf' \\
 Regularization parameter (c'): 15 to 31, step=5\\
 Kernel coefficient for 'rbf' ($\gamma$)= scale/auto\\
 
+\noindent
 \textbf{Random Forest (RF)}
 
+\noindent
 The number of tree in the forest: -10, 100 or 250
 
+\noindent
 \textbf{Stacked regressor - SVR and RF}
 
+\noindent
 Combined parameters from SVR and RF.
 
+\noindent
 \textbf{Simple decision tree}
 
+\noindent
 Maximal decision tree: 5
 
 
