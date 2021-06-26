@@ -146,9 +146,10 @@ def plot_save_categorized_importance(
 
         plt.plot(
             aaaa.loc[idx[:, windowing, 'mean']][column].index,
-            aaaa.loc[idx[:, windowing, 'mean']][column],
+            aaaa.loc[idx[:, windowing, 'mean']][column].clip(.001),
             label=column_label(column),
         )
+        plt.yscale('log')
 
     plt.ylim(lim)
     plt.ylabel(y_label)
@@ -169,7 +170,7 @@ height = 5
 
 # %%
 plot_save_categorized_importance(windowing=1,
-                                 lim=(-0.2, 2.6),
+                                 lim=(1E-3, 1E1),
                                  x_label='Shift (days)',
                                  y_label='Importance',
                                  width=width,
@@ -178,7 +179,7 @@ plot_save_categorized_importance(windowing=1,
 
 # %%
 plot_save_categorized_importance(windowing=15,
-                                 lim=(-0.2, 2.6),
+                                 lim=(1E-3, 1E1),
                                  x_label='Shift (days)',
                                  y_label='Importance',
                                  width=width,
@@ -187,7 +188,7 @@ plot_save_categorized_importance(windowing=15,
 
 # %%
 plot_save_categorized_importance(windowing=30,
-                                 lim=(-0.2, 2.6),
+                                 lim=(1E-3, 1E1),
                                  legend_loc='upper left',
                                  x_label='Shift (days)',
                                  y_label='Importance',
