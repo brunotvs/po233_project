@@ -10,7 +10,7 @@ import scipy.interpolate
 import scipy.stats
 from matplotlib.transforms import Affine2D
 from sklearn.model_selection import cross_val_predict
-from sqlalchemy.sql.expression import label
+from sqlalchemy.sql.expression import label, true
 
 from source.project_utils.constants import targets_models
 
@@ -522,7 +522,61 @@ for shift in [1, 29]:  # range(1, 30, 7):
 
 ax.legend(loc='best')
 fig.autofmt_xdate()
+plt.grid(True)
 plt.savefig(f'paper/Graphs/StackedComparisson.svg')
+plt.show()
+
+
+# %%
+date_start = datetime.date(1990, 1, 1)
+date_end = datetime.date(2010, 1, 1)
+interpolate_steps = 1
+time_slice = slice(date_start, date_end)
+time_slice_interpolate = slice(date_start, date_end, interpolate_steps)
+
+original_data = regression_models[1]['best_windowed_data']['streamflow']
+
+predict_X_y_spline = scipy.interpolate.make_interp_spline(
+    original_data.loc[time_slice_interpolate].index.values,
+    original_data.loc[time_slice_interpolate].values
+)
+interpolated_original_y = predict_X_y_spline(original_data.loc[time_slice].index).clip(min=0)
+# %%
+width = 15
+height = 8
+fig, ax = plt.subplots()
+plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
+ax.plot(original_data.loc[time_slice].index.values, interpolated_original_y, label='True')
+for shift in [1, 29]:  # range(1, 30, 7):
+    cv_predict = cross_val_predict(
+        regression_models[shift]['best_estimator'],
+        regression_models[shift]['best_windowed_data'],
+        regression_models[shift]['best_windowed_data']['streamflow'],
+        n_jobs=-1)
+
+    predicted_values = pandas.DataFrame(
+        cv_predict,
+        columns=['predict'],
+        index=regression_models[shift]['best_windowed_data'].index)
+
+    predict_X_y_spline = scipy.interpolate.make_interp_spline(
+        predicted_values.loc[time_slice_interpolate].index.values,
+        predicted_values.loc[time_slice_interpolate].values
+    )
+
+    interpolated_predicted_y = predict_X_y_spline(predicted_values.loc[time_slice].index).clip(min=0)
+    ax.plot(
+        predicted_values.loc[time_slice].index,
+        interpolated_predicted_y,
+        label=f'{shift}',
+        # linestyle='dashed',
+        linewidth=.85
+    )
+
+ax.legend(loc='best')
+fig.autofmt_xdate()
+plt.grid(True)
+plt.savefig(f'paper/Graphs/StackedComparissonFullData.svg')
 plt.show()
 
 
