@@ -1,0 +1,46 @@
+<svg host="65bd71144e" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="213px" height="181px" viewBox="-0.5 -0.5 213 181" content="&lt;mxfile&gt;&lt;diagram id=&quot;4f45wHTHc_MdsmCt-LUI&quot; name=&quot;Page-1&quot;&gt;7Vhbb5swGP01PK4y9+QxSZvupdPUVNqzCx/BmsHIOCHpr58NJgFMu7SjWycVKZE5vmCf893AclfZ4ZbjIr1jMVDLQfHBcq8tx7FtT/4r4NgAjuc0wJaTWI85AxvyBBpEGt2RGMreQMEYFaTogxHLc4hED8Ocs6o/LGG0/9QCb8EANhGmJvqDxCJtjxXMzx1fgWxT/eiZEzYdGW4H65OUKY5Z1YHcG8tdccZE08oOK6CKu5aXZt76md7Txjjk4pIJmvc9pjt9Nr0vcWwPKydIXuXNEpdFw2ZCDiAXWCaE0hWjjNcjXYR8BInES8HZT+j12NfLlZrBctHBk/qSuLlvfZQ9cAGHDqTPcQssA8GPckjb6zlXfjNJm5XrhS1SdWTSUNoRqMWwNoztafUzd7Kh6Run0jWofODWyrUWi1LCd5gTrBr3UALfM8INouU5hWKZkm0uEQqJulUEEGl6Cw1nJI7VjCWHkjzhx3o2kvcFI7mo9+8vLf9arbQTrGycxzZUyVkOWpA1zghVnD2QDNQev0GldsoynOsh2gftcCKtAjRQCpk6hcgUykV/LpRnCLURWBCWS/CL/G0EB5wllCkScB5bTiBN1VYcV1iAFA5R2NcRba9UfQRaforZETMcEXM+IqY/gZj+tAFMXVOFo0Ewmo2wMkKKPQEpwQWk5PFCZcKz8aQio9q43mBHIyEfofn81NPmSf8ldiHu5V2T2w53/gsGxYFKh973s/UYofoJ35W3daXrG7Tnelez/iIl2/EI9Lxufh0u5fu/W0pgvgVhLFVrfDr6RbKHZmCrE5DLJLrmOI9IqZr3kpoPlH66ZnSB5U3hm344KBU8Z8Q7x0xsigQ0M3SqFflASeQfSDJIIp4XGIIE76TH/OOGS+d/DJeBc+W8NVwajhkMlpouXNqvevmpUiJgU+BI9VTytbZvA2Zp8XqjGPh5tzjRRvcOdYn3F+sS23xHWoiMlUUKnESdOjuiRL4qw6nCpvAZHLuajVXY7jQVtrw9f35ovOr8Dce9+QU=&lt;/diagram&gt;&lt;/mxfile&gt;">
+    <defs/>
+    <g>
+        <ellipse cx="12" cy="15" rx="7.5" ry="7.5" fill="#0050ef" stroke="#001dbc" pointer-events="all"/>
+        <rect x="22" y="0" width="170" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" font-size="17px">
+            <text x="23.5" y="22">
+                Três Marias Reservoir
+            </text>
+        </g>
+        <rect x="22" y="30" width="190" height="50" fill="none" stroke="none" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" font-size="17px">
+            <text x="23.5" y="52">
+                Station - Streamflow and
+            </text>
+            <text x="23.5" y="72">
+                water level variabels
+            </text>
+        </g>
+        <ellipse cx="12" cy="45" rx="5" ry="5" fill="#000000" stroke="#000000" pointer-events="all"/>
+        <path d="M 2 94.8 L 17 94.8" fill="none" stroke="#000099" stroke-width="5" stroke-miterlimit="10" pointer-events="stroke"/>
+        <rect x="19.5" y="80" width="150" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" font-size="17px">
+            <text x="21" y="102">
+                São Franciso River
+            </text>
+        </g>
+        <rect x="22" y="106" width="60" height="30" fill="none" stroke="none" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" font-size="17px">
+            <text x="23.5" y="128">
+                Rivers
+            </text>
+        </g>
+        <path d="M 2 122.2 L 19.5 122" fill="none" stroke="#000099" stroke-width="2" stroke-miterlimit="10" pointer-events="stroke"/>
+        <ellipse cx="12" cy="145" rx="5" ry="5" fill="none" stroke="#000000" pointer-events="all"/>
+        <rect x="22" y="130" width="130" height="50" fill="none" stroke="none" pointer-events="all"/>
+        <g fill="#000000" font-family="Times New Roman" font-size="17px">
+            <text x="23.5" y="152">
+                Atmospheric
+            </text>
+            <text x="23.5" y="172">
+                climate variables
+            </text>
+        </g>
+    </g>
+</svg>
