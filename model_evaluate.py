@@ -128,6 +128,18 @@ plot_save_importance(windowing=30,
 
 
 # %%
+col_symbol = {
+    'Temperature': 'T',
+    'Precipitation': 'P',
+    'Evaporation': 'E',
+    'Surface runoff': 'R',
+    'Shifted streamflow': 'SF',
+    'Shifted level': 'WL',
+    'Month': 'M'
+}
+# %%
+
+
 def plot_save_categorized_importance(
         windowing=1,
         lim=None,
@@ -147,7 +159,7 @@ def plot_save_categorized_importance(
         plt.plot(
             aaaa.loc[idx[:, windowing, 'mean']][column].index,
             aaaa.loc[idx[:, windowing, 'mean']][column].clip(.001),
-            label=column_label(column),
+            label=col_symbol[column_label(column)],
         )
         plt.yscale('log')
 
@@ -157,7 +169,7 @@ def plot_save_categorized_importance(
     plt.xticks(ImportancesDataFrame.loc[idx[:, windowing, 'mean']][column].index)
 
     if legend_loc is not None:
-        plt.legend(loc=legend_loc, bbox_to_anchor=(1.05, 1))
+        plt.legend(loc=legend_loc, bbox_to_anchor=(1.05, 1), ncol=2)
     plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
     plt.grid(True)
     plt.tight_layout()
@@ -166,7 +178,7 @@ def plot_save_categorized_importance(
 
 # %%
 width = 7.3
-height = 5
+height = 4
 
 # %%
 plot_save_categorized_importance(windowing=1,
@@ -189,10 +201,10 @@ plot_save_categorized_importance(windowing=15,
 # %%
 plot_save_categorized_importance(windowing=30,
                                  lim=(1E-3, 1E1),
-                                 legend_loc='upper left',
+                                 legend_loc='best',
                                  x_label='Shift (days)',
                                  y_label='Importance',
-                                 width=width + 5.2,
+                                 width=width + 4.75,
                                  height=height,
                                  save_folder='paper/graphs')
 
@@ -317,7 +329,7 @@ def plot_save_score(
 
 # %%
 width = 7.3
-height = 4.5
+height = 4
 # %%
 plot_save_score(windowing=1,
                 scorer='R2',
@@ -461,7 +473,7 @@ interpolated_original_y = predict_X_y_spline(original_data.loc[time_slice].index
 
 # %%
 width = 15
-height = 5
+height = 4
 for shift in [1, 29]:  # range(1, 30, 7):
     cv_predict = cross_val_predict(
         regression_models[shift]['best_estimator'],
@@ -490,7 +502,7 @@ for shift in [1, 29]:  # range(1, 30, 7):
 
 # %%
 width = 15
-height = 8
+height = 5
 fig, ax = plt.subplots()
 plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
 ax.plot(original_data.loc[time_slice].index.values, interpolated_original_y, label='True')
@@ -516,7 +528,6 @@ for shift in [1, 29]:  # range(1, 30, 7):
         predicted_values.loc[time_slice].index,
         interpolated_predicted_y,
         label=f'{shift}',
-        # linestyle='dashed',
         linewidth=.85
     )
 
