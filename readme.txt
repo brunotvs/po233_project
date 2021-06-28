@@ -2,7 +2,7 @@
 
 A estrutura está como:
 paper
-    arquivos relativos ao artigo - ainda sem estrutura
+    arquivos relativos ao artigo
 source
     Módulos e scripts personalizados
 
