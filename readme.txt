@@ -17,3 +17,5 @@ Em um terminal:
 
     .env/Scripts/python.exe -m pip install -r requirements.txt
     .env/Scripts/python.exe source/setup.py
+
+Ou rodar o python a partir de outro ambiente.
