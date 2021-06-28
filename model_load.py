@@ -446,7 +446,7 @@ plot_save_score(windowing=30,
 
 # %%
 date_start = datetime.date(2000, 1, 1)
-date_end = datetime.date(2001, 1, 1)
+date_end = datetime.date(2002, 1, 1)
 interpolate_steps = 1
 time_slice = slice(date_start, date_end)
 time_slice_interpolate = slice(date_start, date_end, interpolate_steps)
@@ -487,6 +487,43 @@ for shift in [1, 29]:  # range(1, 30, 7):
     plt.legend(loc='upper right')
     plt.savefig(f'paper/Graphs/Comparisson_d{shift:02d}.svg')
     plt.show()
+
+# %%
+width = 15
+height = 8
+fig, ax = plt.subplots()
+plt.gcf().set_size_inches(cm_to_inches(width), cm_to_inches(height))
+ax.plot(original_data.loc[time_slice].index.values, interpolated_original_y, label='True')
+for shift in [1, 29]:  # range(1, 30, 7):
+    cv_predict = cross_val_predict(
+        regression_models[shift]['best_estimator'],
+        regression_models[shift]['best_windowed_data'],
+        regression_models[shift]['best_windowed_data']['streamflow'],
+        n_jobs=-1)
+
+    predicted_values = pandas.DataFrame(
+        cv_predict,
+        columns=['predict'],
+        index=regression_models[shift]['best_windowed_data'].index)
+
+    predict_X_y_spline = scipy.interpolate.make_interp_spline(
+        predicted_values.loc[time_slice_interpolate].index.values,
+        predicted_values.loc[time_slice_interpolate].values
+    )
+
+    interpolated_predicted_y = predict_X_y_spline(predicted_values.loc[time_slice].index).clip(min=0)
+    ax.plot(
+        predicted_values.loc[time_slice].index,
+        interpolated_predicted_y,
+        label=f'{shift}',
+        # linestyle='dashed',
+        linewidth=.85
+    )
+
+ax.legend(loc='best')
+fig.autofmt_xdate()
+plt.savefig(f'paper/Graphs/StackedComparisson.svg')
+plt.show()
 
 
 # %%
