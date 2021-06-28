@@ -185,13 +185,13 @@ To evaluate the performance of SVR, RF, Stacking Regressor and decision tree, we
         \label{eqn:mae}
         MAE={\frac{1}{n}\sum_{i=0}^{n-1}|(X_{pred}-X_{i})|}
     \end{equation}
-in which $n$ means the number of non-missing data, $i$ is the variable, $X_{pred}$ and $X_{i}$ mean the predicted and the actual value, respectively. Conversely, $R^2$ represents the proportion of the variance in the dependent variable which is explained by the regression model, given by the Equation
+in which $n$ means the number of non-missing data, $i$ is the variable, $X_{pred}$ and $X_{i}$ mean the predicted and the actual value, respectively. Conversely, $R^2$ represents the proportion of the variance in the dependent variable which is explained by the regression model, and is given by the Equation
     \begin{equation}
         \label{eqn:r2}
         R^2={1 - \frac{\sum\limits_{i=0}^{n-1}(X_{pred}-X_{i})^{2}}
                       {\sum\limits_{i=0}^{n-1}(X_{i}-X_{mean})^{2}}}
     \end{equation}
-where $X_{mean}$ is $\frac{1}{n}\sum_{i=0}^{n-1}X_{i}$ and $X_{pred}$ and $X_{i}$ are the predicted and it's corresponding true value, while $n$ is the size of the test sample. R-square is a indicator of goodness, indicating how well the model can predict unseen samples. The best possible R-squared value is $1.0$ and it can be negative, as the model gets arbitrarily worse.
+where $X_{mean}$ is $\frac{1}{n}\sum_{i=0}^{n-1}X_{i}$, and $X_{pred}$ and $X_{i}$ are the predicted and it's corresponding true value, while $n$ is the size of the test sample. R-square is a indicator of goodness, indicating how well the model can predict unseen samples. The best possible R-squared value is $1.0$ and it can be negative, as the model gets arbitrarily worse.
 
 \section{Data preprocessing}
 \label{sec:DataPreprocessing}
@@ -224,12 +224,12 @@ While only the scale in the values changed with the normalization procedure, it 
   \label{fig:Normalized}
 \end{figure}
 
-For month variable we apply one-hot encoding, which is often used for categorical variables.
+For the month variable, we applied one-hot encoding, which is often used for categorical variables, when the regressor was sensitive to the scale of the attributes, such as SVR, or Ordinal encoding, otherwise.
 
 \section{Results and discussion}
 \label{sec:ResultsDiscussion}
 
-Having tested horizon prediction of streamflow and water level varying from 1 to 29 days, and windowing at intervals of 1, 15 and 30 days for the climate variables, results indicated better fit for horizon of one day and window of 30 days. However, the models presented different results of R\textsuperscript{2} when they are compared to each other, as shown in Figures \ref{fig:r2_1}, \ref{fig:r2_15} and \ref{fig:r2_30}.
+Having tested horizon prediction of streamflow and water level varying from 1 to 29 days, and windowing at intervals of 1, 15 and 30 days for the climate variables, results indicated better fit for horizon of one day and window of 30 days. However, the models presented different results of R\textsuperscript{2} when they are compared to each other, as shown in Figure~\ref{fig:r2}.
 
 \begin{figure}[htbp]
     \centering
@@ -293,6 +293,15 @@ Figure \ref{fig:sfigMAE} presents MAE values for different period-windowing and 
 
 Analyzing the prediction horizon, results indicate that MAE tends to be constant for SVR and Decision Tree after 8 days of the horizon. MAE in RF model decreases slightly with the horizon time prediction expansion in 15 and 30 days-windowing.
 
+From an evaluation of Figure~\ref{fig:StackedComparisson}, which demonstrates the true versus predicted values for 1 and 29 days of prediction horizon, it is evident that the model trained for 1 day of horizon presents greater sensitivity to sudden changes in reservoir streamflow, while that the model with the longest horizon time, despite being able to follow the streamflow trend, does not faithfully represent the peaks present. Another point that can be justified by the presence of these peaks is the relatively large value found for the MAE since the model ends up being highly penalized by sudden changes in streamflow. On the other hand, an R-squared metric, which considers the amplitude of the actual data, ends up not being penalized in the same way. Figure~\ref{fig:StackedComparisson} presents data for a two-year window from 2000 to 2002, so data can be more easily visualized. For a visualization for the whole data range, see Appendix~\ref{sec:TrueVersusPredicted}
+
+\begin{figure}[htbp]
+    \centering
+    \includesvg{Graphs/StackedComparisson}
+    \caption{Comparison between true and predicted values for a prediction     horizon of 1 and 29 days. Visualization for a 2 year window, from 2000 to 2002}
+    \label{fig:StackedComparisson}
+\end{figure}
+
 After 8 days of prediction horizon, the R\textsuperscript{2} tends to be constant in 15 and 30 days-windowing cases. In 1 day-windowing case, the models presented an unexpected performance, since the models had a turning point in 15 days-horizon, in which the performance reached its lowest point and rose again.
 
 Random forest outperforms in all considered cases of prediction horizon and windowing in terms of R\textsuperscript{2}. Decision Tree Regressor has the worst fit, while SVR and Stacking Regressor had similar results, although Stacking Regressor slightly presents higher values of R\textsuperscript{2}.
@@ -334,18 +343,18 @@ In general terms, RF had a better results of MAE, if compared to other models. S
 
 In this work, we tested four methods to forecast streamflow using Três Marias reservoir as a study case. Results indicated that RF had the best fit over the models.  For one-day prediction horizon for streamflow and water level , models presented R-squared values in the range 0.7 to 0.9, but that decreases according to the increase of  prediction horizon. With regards to windowing of climate variables, the best fits occur when considering a 30 days-windowing, which might be related to the delay of the physical process impact of all climate variables in the entire sub-basin on the reservoir upstream.
 
-SVR had the highest values of MAE, while RF had the lowest values. The Stacking Regressor and decision tree produced similar values of MAE. Surprisingly, RF presented a slight increase of MAE for greater days of lagging, and for the case of 15 and 30 days-windowing, while the other models presented a trend of having a decline.
+SVR had the highest values of MAE, while RF had the lowest values. The Stacking Regressor and decision tree produced similar values of MAE. Surprisingly, RF presented a slight increase of MAE for increased prediction horizon, and for the case of 15 and 30 days-windowing, while the other models presented a trend of having a decline.
 
 Empirical results obtained from these models showed the performance not only over the models, but also changing the lag of streamflow and water level, and the window period of climate variables. That is important in solving water resources management problems and improve the streamflow prediction.
+
+As the prediction horizon increases, the tested models become less sensitive to drastic changes in the streamflow, not being able to predict peaks, but keeping the ability to describe the overall tendency.
 
 Finally, other properties that have a direct impact on streamflow, as land-use, soil classification, and wind speed, might improve the approach of modeling to the actual physical phenomena. Thus, we suggest the inclusion of other climate variables, and also other reservoir study cases.
 
 \bibliographystyle{sbc}
 \bibliography{sbc-template}
 
-
 \appendix
 \input{Appendix}
-
 
 \end{document}
