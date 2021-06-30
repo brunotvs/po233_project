@@ -6,7 +6,7 @@ paper
 source
     Módulos e scripts personalizados
 
-model_load.py - Arquivo que carrega os modelos encontrados
+model_evaluate.py - Arquivo que carrega os modelos encontrados
 model_search.py - Arquivo para configurar parâmetros e salvar o modelo
 
 Passo a passo para configurar o ambiente, após clonar do github:
